@@ -1,14 +1,37 @@
-import { Building2 } from "lucide-react";
-import { ModulePlaceholder } from "@/components/shared/module-placeholder";
+import Link from "next/link";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CompanyTable } from "@/components/crm/company-table";
+import { PageHeader } from "@/components/shared/page-header";
+import { getCompanies, getCompanyFormOptions } from "@/lib/crm/queries";
+import type { CompanyFilters } from "@/lib/crm/types";
 
-export default function CompaniesPage() {
+export default async function CompaniesPage({
+  searchParams,
+}: {
+  searchParams: Promise<CompanyFilters>;
+}) {
+  const filters = await searchParams;
+  const [companies, options] = await Promise.all([
+    getCompanies(filters),
+    getCompanyFormOptions(),
+  ]);
+
   return (
-    <ModulePlaceholder
-      title="Companies / Leads"
-      description="Manage lead companies, qualification status, ownership, and relationship context."
-      emptyTitle="Company CRM module is ready for Sprint 2"
-      emptyDescription="The page shell is in place. CRUD, tables, filters, and Supabase-backed tenant data can plug in next."
-      icon={Building2}
-    />
+    <div>
+      <PageHeader
+        title="Companies / Leads"
+        description="Manage company leads, qualification signals, pipeline stages, and ownership."
+        actions={
+          <Button asChild>
+            <Link href="/companies/new">
+              <Plus />
+              Add Company
+            </Link>
+          </Button>
+        }
+      />
+      <CompanyTable companies={companies} {...options} />
+    </div>
   );
 }

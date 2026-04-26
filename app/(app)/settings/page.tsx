@@ -1,14 +1,34 @@
-import { Settings } from "lucide-react";
-import { ModulePlaceholder } from "@/components/shared/module-placeholder";
+import { BriefcaseBusiness, Building2, KanbanSquare } from "lucide-react";
+import { CrmSettingsCard } from "@/components/crm/crm-settings-card";
+import { PageHeader } from "@/components/shared/page-header";
 
 export default function SettingsPage() {
   return (
-    <ModulePlaceholder
-      title="Settings"
-      description="Configure workspace profile, CRM defaults, security preferences, and integrations."
-      emptyTitle="Settings foundation is in place"
-      emptyDescription="Workspace preferences and admin controls can be added without changing the app shell."
-      icon={Settings}
-    />
+    <div>
+      <PageHeader
+        title="Settings"
+        description="Configure CRM base data, workspace defaults, and sales workflow settings."
+      />
+      <div className="grid gap-4 lg:grid-cols-3">
+        <CrmSettingsCard
+          title="Industries"
+          description="Manage industry labels for company lead segmentation."
+          href="/settings/industries"
+          icon={BriefcaseBusiness}
+        />
+        <CrmSettingsCard
+          title="Company Categories"
+          description="Manage value tiers and prioritization categories."
+          href="/settings/company-categories"
+          icon={Building2}
+        />
+        <CrmSettingsCard
+          title="Pipeline"
+          description="Customize pipeline stages, colors, order, and probabilities."
+          href="/settings/pipeline"
+          icon={KanbanSquare}
+        />
+      </div>
+    </div>
   );
 }

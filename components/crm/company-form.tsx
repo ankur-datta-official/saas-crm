@@ -1,0 +1,193 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import type React from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Save } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { companySchema, type CompanyFormValues } from "@/lib/crm/schemas";
+import type { Company, CompanyCategory, Industry, PipelineStage, TeamMemberOption } from "@/lib/crm/types";
+import { createCompanyAction, updateCompanyAction } from "@/lib/crm/actions";
+
+type CompanyFormProps = {
+  company?: Company;
+  industries: Industry[];
+  categories: CompanyCategory[];
+  stages: PipelineStage[];
+  teamMembers: TeamMemberOption[];
+};
+
+export function CompanyForm({ company, industries, categories, stages, teamMembers }: CompanyFormProps) {
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const form = useForm<CompanyFormValues>({
+    resolver: zodResolver(companySchema),
+    defaultValues: {
+      name: company?.name ?? "",
+      industry_id: company?.industry_id ?? "",
+      category_id: company?.category_id ?? "",
+      lead_source: company?.lead_source ?? "",
+      priority: company?.priority ?? "medium",
+      assigned_user_id: company?.assigned_user_id ?? "",
+      pipeline_stage_id: company?.pipeline_stage_id ?? stages[0]?.id ?? "",
+      status: company?.status ?? "active",
+      phone: company?.phone ?? "",
+      whatsapp: company?.whatsapp ?? "",
+      email: company?.email ?? "",
+      website: company?.website ?? "",
+      address: company?.address ?? "",
+      city: company?.city ?? "",
+      country: company?.country ?? "",
+      success_rating: company?.success_rating ?? "",
+      lead_temperature: company?.lead_temperature ?? "warm",
+      estimated_value: company?.estimated_value ?? "",
+      expected_closing_date: company?.expected_closing_date ?? "",
+      notes: company?.notes ?? "",
+    },
+  });
+
+  function onSubmit(values: CompanyFormValues) {
+    setServerError(null);
+    startTransition(async () => {
+      const result = company ? await updateCompanyAction(company.id, values) : await createCompanyAction(values);
+      if (!result?.ok) {
+        setServerError(result?.error ?? "Unable to save company.");
+      }
+    });
+  }
+
+  return (
+    <form className="space-y-5" onSubmit={form.handleSubmit(onSubmit)}>
+      <FormSection title="Basic Information" description="Core lead classification, ownership, and pipeline placement.">
+        <Field label="Company name" error={form.formState.errors.name?.message}>
+          <Input {...form.register("name")} placeholder="Acme Enterprise" />
+        </Field>
+        <SelectField label="Industry" {...form.register("industry_id")}>
+          <option value="">Select industry</option>
+          {industries.map((industry) => <option key={industry.id} value={industry.id}>{industry.name}</option>)}
+        </SelectField>
+        <SelectField label="Company category" {...form.register("category_id")}>
+          <option value="">Select category</option>
+          {categories.map((category) => <option key={category.id} value={category.id}>{category.code} - {category.name}</option>)}
+        </SelectField>
+        <Field label="Lead source">
+          <Input {...form.register("lead_source")} placeholder="Referral, Website, LinkedIn" />
+        </Field>
+        <SelectField label="Priority" {...form.register("priority")}>
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+          <option value="urgent">Urgent</option>
+        </SelectField>
+        <SelectField label="Assigned user" {...form.register("assigned_user_id")}>
+          <option value="">Unassigned</option>
+          {teamMembers.map((member) => <option key={member.id} value={member.id}>{member.full_name ?? member.email}</option>)}
+        </SelectField>
+        <SelectField label="Pipeline stage" {...form.register("pipeline_stage_id")}>
+          <option value="">No stage</option>
+          {stages.map((stage) => <option key={stage.id} value={stage.id}>{stage.name}</option>)}
+        </SelectField>
+        <SelectField label="Status" {...form.register("status")}>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </SelectField>
+      </FormSection>
+
+      <FormSection title="Contact Information" description="Public contact channels and location details.">
+        <Field label="Phone"><Input {...form.register("phone")} /></Field>
+        <Field label="WhatsApp"><Input {...form.register("whatsapp")} /></Field>
+        <Field label="Email" error={form.formState.errors.email?.message}><Input {...form.register("email")} /></Field>
+        <Field label="Website" error={form.formState.errors.website?.message}><Input {...form.register("website")} placeholder="https://example.com" /></Field>
+        <Field label="Address"><Input {...form.register("address")} /></Field>
+        <Field label="City"><Input {...form.register("city")} /></Field>
+        <Field label="Country"><Input {...form.register("country")} /></Field>
+      </FormSection>
+
+      <FormSection title="Sales Information" description="Qualification, value, temperature, and expected close timing.">
+        <Field label="Success rating" error={form.formState.errors.success_rating?.message}>
+          <Input type="number" min={1} max={10} {...form.register("success_rating")} />
+        </Field>
+        <SelectField label="Lead temperature" {...form.register("lead_temperature")}>
+          <option value="cold">Cold</option>
+          <option value="warm">Warm</option>
+          <option value="hot">Hot</option>
+        </SelectField>
+        <Field label="Estimated value" error={form.formState.errors.estimated_value?.message}>
+          <Input type="number" min={0} step="0.01" {...form.register("estimated_value")} />
+        </Field>
+        <Field label="Expected closing date">
+          <Input type="date" {...form.register("expected_closing_date")} />
+        </Field>
+      </FormSection>
+
+      <FormSection title="Notes" description="Internal context for qualification and next action planning." columns="grid-cols-1">
+        <div className="space-y-2">
+          <Label htmlFor="notes">Notes</Label>
+          <textarea
+            id="notes"
+            {...form.register("notes")}
+            className="min-h-32 w-full rounded-md border bg-background px-3 py-2 text-sm"
+            placeholder="Capture relationship context, requirements, risks, and decision notes."
+          />
+        </div>
+      </FormSection>
+
+      {serverError ? <p className="rounded-md bg-rose-50 p-3 text-sm text-rose-700">{serverError}</p> : null}
+      <Button type="submit" disabled={isPending || form.formState.isSubmitting}>
+        <Save />
+        {company ? "Update company" : "Create company"}
+      </Button>
+    </form>
+  );
+}
+
+function FormSection({
+  title,
+  description,
+  children,
+  columns = "md:grid-cols-2 xl:grid-cols-4",
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+  columns?: string;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent className={`grid gap-4 ${columns}`}>{children}</CardContent>
+    </Card>
+  );
+}
+
+function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      {children}
+      {error ? <p className="text-xs text-destructive">{error}</p> : null}
+    </div>
+  );
+}
+
+function SelectField({
+  label,
+  children,
+  ...props
+}: React.SelectHTMLAttributes<HTMLSelectElement> & { label: string }) {
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <select {...props} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
+        {children}
+      </select>
+    </div>
+  );
+}

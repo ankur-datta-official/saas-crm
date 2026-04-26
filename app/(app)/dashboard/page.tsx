@@ -10,19 +10,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/shared/stat-card";
 import { StatusBadge } from "@/components/shared/status-badge";
+import { getDashboardMetrics } from "@/lib/crm/queries";
+import { formatCurrency } from "@/lib/crm/utils";
 import { requireOrganization } from "@/lib/auth/session";
-
-const stats = [
-  { title: "Total Leads", value: "0", description: "All active lead records", icon: Users, tone: "teal" },
-  { title: "Hot Leads", value: "0", description: "High-priority opportunities", icon: Flame, tone: "rose" },
-  { title: "Today's Follow-ups", value: "0", description: "Due before end of day", icon: Handshake, tone: "amber" },
-  { title: "Missed Follow-ups", value: "0", description: "Needs immediate review", icon: TimerOff, tone: "rose" },
-  { title: "Meetings This Week", value: "0", description: "Scheduled client sessions", icon: CalendarClock, tone: "blue" },
-  { title: "Pipeline Value", value: "$0", description: "Open opportunity value", icon: LineChart, tone: "slate" },
-] as const;
 
 export default async function DashboardPage() {
   const organization = await requireOrganization();
+  const metrics = await getDashboardMetrics();
+  const stats = [
+    { title: "Total Leads", value: String(metrics.totalCompanies), description: "All active company lead records", icon: Users, tone: "teal" },
+    { title: "Hot Leads", value: String(metrics.hotLeads), description: "Leads marked with hot temperature", icon: Flame, tone: "rose" },
+    { title: "Today's Follow-ups", value: "0", description: "Due before end of day", icon: Handshake, tone: "amber" },
+    { title: "Missed Follow-ups", value: "0", description: "Needs immediate review", icon: TimerOff, tone: "rose" },
+    { title: "Meetings This Week", value: "0", description: "Scheduled client sessions", icon: CalendarClock, tone: "blue" },
+    { title: "Pipeline Value", value: formatCurrency(metrics.pipelineValue), description: "Open company lead value", icon: LineChart, tone: "slate" },
+  ] as const;
 
   return (
     <div>

@@ -27,6 +27,7 @@ Run these files in order from the Supabase SQL editor or your migration workflow
 
 1. `supabase/migrations/001_core_saas_schema.sql`
 2. `supabase/migrations/002_seed_platform_data.sql`
+3. `supabase/migrations/003_crm_base_company_management.sql`
 
 The first migration creates:
 
@@ -47,6 +48,15 @@ The second migration seeds:
 
 - Starter, Professional, Business, Enterprise subscription plans
 - Base permissions used by default organization roles
+
+The third migration adds Sprint 3 CRM base tables and settings:
+
+- `industries`
+- `company_categories`
+- `companies`
+- pipeline stage color support
+- RLS policies and grants for tenant-scoped CRM settings and company lead records
+- default company categories for each organization
 
 ## 4. Auth Settings
 
@@ -96,4 +106,21 @@ Current policy posture:
 - Pipeline stages include a basic manage policy for organization members so future admin screens can build on it.
 - Super admin support is prepared through JWT `app_metadata.is_super_admin`.
 
-Company, meeting, follow-up, report, and document domain tables are intentionally deferred to later sprints.
+Contact person, meeting, follow-up, report, and document domain tables are intentionally deferred to later sprints.
+
+## 7. Test Company CRUD
+
+After running all three SQL files:
+
+1. Register and create a workspace.
+2. Open `/settings/industries` and add an industry.
+3. Open `/settings/company-categories` and confirm the default A+ through D categories exist.
+4. Open `/settings/pipeline` and edit a stage color or probability.
+5. Open `/companies/new` and create a company lead.
+6. Confirm `/companies` shows the lead and filters work.
+7. Open the company profile at `/companies/[id]`.
+8. Edit the company and change its pipeline stage.
+9. Archive the company from the list.
+10. Confirm `activity_logs` has records for create, update, pipeline change, and archive actions.
+
+Company, contact person, meeting, follow-up, document upload, reports, and import/export workflows beyond this base CRUD remain deferred to later sprints.
