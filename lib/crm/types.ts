@@ -1,6 +1,20 @@
 export type RecordStatus = "active" | "inactive" | "archived";
 export type CompanyPriority = "low" | "medium" | "high" | "urgent";
 export type LeadTemperature = "cold" | "warm" | "hot";
+export type DecisionRole =
+  | "Owner"
+  | "CEO / MD"
+  | "Director"
+  | "Procurement"
+  | "IT Head"
+  | "Admin"
+  | "Engineer"
+  | "Finance"
+  | "Influencer"
+  | "Gatekeeper"
+  | "Other";
+export type RelationshipLevel = "New" | "Known" | "Warm" | "Strong" | "Decision Maker" | "Risky" | "Inactive";
+export type PreferredContactMethod = "Phone" | "WhatsApp" | "Email" | "LinkedIn" | "Physical Meeting";
 
 export type Industry = {
   id: string;
@@ -74,6 +88,36 @@ export type Company = {
     full_name: string | null;
     email: string;
   } | null;
+  primary_contact?: Pick<ContactPerson, "id" | "name" | "mobile" | "email" | "designation"> | null;
+};
+
+export type ContactPerson = {
+  id: string;
+  organization_id: string;
+  company_id: string;
+  name: string;
+  designation: string | null;
+  department: string | null;
+  mobile: string | null;
+  whatsapp: string | null;
+  email: string | null;
+  linkedin: string | null;
+  decision_role: DecisionRole | null;
+  relationship_level: RelationshipLevel | null;
+  preferred_contact_method: PreferredContactMethod | null;
+  remarks: string | null;
+  is_primary: boolean;
+  status: RecordStatus;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+  companies?: Pick<Company, "id" | "name" | "phone" | "email"> | null;
+  created_profile?: {
+    id: string;
+    full_name: string | null;
+    email: string;
+  } | null;
 };
 
 export type TeamMemberOption = {
@@ -90,4 +134,13 @@ export type CompanyFilters = {
   priority?: string;
   temperature?: string;
   assigned?: string;
+};
+
+export type ContactFilters = {
+  search?: string;
+  company?: string;
+  decisionRole?: string;
+  relationshipLevel?: string;
+  preferredMethod?: string;
+  status?: string;
 };

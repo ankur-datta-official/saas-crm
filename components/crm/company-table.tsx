@@ -54,44 +54,68 @@ export function CompanyTable({ companies, industries, categories, stages, teamMe
 
       {companies.length === 0 ? (
         <EmptyState
-          title="No companies found"
-          description="Add your first company lead or adjust filters to see matching records."
+          title="No companies added yet"
+          description="Add your first lead or import data later."
           icon={Plus}
         />
       ) : (
-        <div className="overflow-hidden rounded-lg border bg-white">
+        <div className="space-y-3 md:hidden">
+          {companies.map((company) => (
+            <div key={company.id} className="rounded-lg border bg-white p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{company.name}</p>
+                  <p className="mt-1 truncate text-sm text-muted-foreground">
+                    Primary: {company.primary_contact?.name ?? "No primary contact"}
+                  </p>
+                </div>
+                <CompanyStatusBadge status={company.status} />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <RatingBadge rating={company.success_rating} />
+                <LeadTemperatureBadge temperature={company.lead_temperature} />
+              </div>
+              <div className="mt-3 flex gap-1">
+                <Button asChild size="sm" variant="outline"><Link href={`/companies/${company.id}`}>View</Link></Button>
+                <Button asChild size="sm" variant="ghost"><Link href={`/companies/${company.id}/edit`}>Edit</Link></Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {companies.length > 0 ? (
+        <div className="hidden max-w-full overflow-hidden rounded-lg border bg-white md:block">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1100px] text-left text-sm">
+            <table className="w-full min-w-[860px] table-fixed text-left text-sm">
               <thead className="border-b bg-muted/50 text-xs uppercase text-muted-foreground">
                 <tr>
-                  <th className="px-4 py-3">Company Name</th>
-                  <th className="px-4 py-3">Industry</th>
-                  <th className="px-4 py-3">Category</th>
-                  <th className="px-4 py-3">Assigned To</th>
-                  <th className="px-4 py-3">Rating</th>
-                  <th className="px-4 py-3">Temperature</th>
-                  <th className="px-4 py-3">Pipeline Stage</th>
-                  <th className="px-4 py-3">Next Follow-up</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Actions</th>
+                  <th className="w-[18%] px-4 py-3">Company Name</th>
+                  <th className="w-[15%] px-4 py-3">Primary Contact</th>
+                  <th className="w-[13%] px-4 py-3">Industry</th>
+                  <th className="w-[14%] px-4 py-3">Stage</th>
+                  <th className="w-[9%] px-4 py-3">Rating</th>
+                  <th className="w-[11%] px-4 py-3">Temperature</th>
+                  <th className="w-[12%] px-4 py-3">Assigned To</th>
+                  <th className="w-[8%] px-4 py-3">Status</th>
+                  <th className="w-[10%] px-4 py-3">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {companies.map((company) => (
                   <tr key={company.id} className="border-b last:border-0">
-                    <td className="px-4 py-3 font-medium">{company.name}</td>
-                    <td className="px-4 py-3">{company.industries?.name ?? "-"}</td>
-                    <td className="px-4 py-3">{company.company_categories?.name ?? "-"}</td>
-                    <td className="px-4 py-3">{company.assigned_profile?.full_name ?? company.assigned_profile?.email ?? "Unassigned"}</td>
-                    <td className="px-4 py-3"><RatingBadge rating={company.success_rating} /></td>
-                    <td className="px-4 py-3"><LeadTemperatureBadge temperature={company.lead_temperature} /></td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center gap-2">
-                        {company.pipeline_stages?.color ? <span className="size-3 rounded-full" style={{ background: company.pipeline_stages.color }} /> : null}
-                        {company.pipeline_stages?.name ?? "-"}
+                    <td className="truncate px-4 py-3 font-medium">{company.name}</td>
+                    <td className="truncate px-4 py-3">{company.primary_contact?.name ?? "-"}</td>
+                    <td className="truncate px-4 py-3">{company.industries?.name ?? "-"}</td>
+                    <td className="truncate px-4 py-3">
+                      <span className="inline-flex min-w-0 items-center gap-2">
+                        {company.pipeline_stages?.color ? <span className="size-3 shrink-0 rounded-full" style={{ background: company.pipeline_stages.color }} /> : null}
+                        <span className="truncate">{company.pipeline_stages?.name ?? "-"}</span>
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">Future sprint</td>
+                    <td className="px-4 py-3"><RatingBadge rating={company.success_rating} /></td>
+                    <td className="px-4 py-3"><LeadTemperatureBadge temperature={company.lead_temperature} /></td>
+                    <td className="truncate px-4 py-3">{company.assigned_profile?.full_name ?? company.assigned_profile?.email ?? "Unassigned"}</td>
                     <td className="px-4 py-3"><CompanyStatusBadge status={company.status} /></td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1">
@@ -106,7 +130,7 @@ export function CompanyTable({ companies, industries, categories, stages, teamMe
             </table>
           </div>
         </div>
-      )}
+      ) : null}
 
       <ConfirmModal
         open={Boolean(archiveId)}

@@ -54,7 +54,7 @@ export function IndustrySettingsManager({ industries }: { industries: Industry[]
       error={error}
       form={
         <form action={(formData) => startTransition(() => void submit(formData))} className="grid gap-4 md:grid-cols-[1fr_1.4fr_160px_auto]">
-          <Field label="Name" name="name" defaultValue={editing?.name} placeholder="Technology" />
+          <Field label="Name" name="name" required defaultValue={editing?.name} placeholder="Technology" />
           <Field label="Description" name="description" defaultValue={editing?.description ?? ""} placeholder="Software and IT services" />
           <SelectField label="Status" name="status" defaultValue={editing?.status ?? "active"} options={statuses} />
           <div className="flex items-end gap-2">
@@ -122,8 +122,8 @@ export function CompanyCategorySettingsManager({ categories }: { categories: Com
       error={error}
       form={
         <form action={(formData) => startTransition(() => void submit(formData))} className="grid gap-4 lg:grid-cols-[1fr_120px_120px_1.3fr_150px_auto]">
-          <Field label="Name" name="name" defaultValue={editing?.name} placeholder="A+ High Value" />
-          <Field label="Code" name="code" defaultValue={editing?.code} placeholder="A+" />
+          <Field label="Name" name="name" required defaultValue={editing?.name} placeholder="A+ High Value" />
+          <Field label="Code" name="code" defaultValue={editing?.code} placeholder="Auto if blank" />
           <Field label="Priority" name="priority_level" defaultValue={editing?.priority_level ?? 3} type="number" />
           <Field label="Description" name="description" defaultValue={editing?.description ?? ""} placeholder="Top priority accounts" />
           <SelectField label="Status" name="status" defaultValue={editing?.status ?? "active"} options={statuses} />
@@ -195,7 +195,7 @@ export function PipelineSettingsManager({ stages }: { stages: PipelineStage[] })
       error={error}
       form={
         <form action={(formData) => startTransition(() => void submit(formData))} className="grid gap-4 xl:grid-cols-[1fr_90px_120px_120px_repeat(3,90px)_auto]">
-          <Field label="Stage" name="name" defaultValue={editing?.name} placeholder="Proposal Sent" />
+          <Field label="Stage" name="name" required defaultValue={editing?.name} placeholder="Proposal Sent" />
           <Field label="Color" name="color" defaultValue={editing?.color ?? "#0f766e"} type="color" />
           <Field label="Probability" name="probability" defaultValue={editing?.probability ?? 0} type="number" />
           <Field label="Order" name="position" defaultValue={editing?.position ?? stages.length + 1} type="number" />
@@ -272,16 +272,18 @@ function Field({
   defaultValue,
   placeholder,
   type = "text",
+  required = false,
 }: {
   label: string;
   name: string;
   defaultValue?: string | number | null;
   placeholder?: string;
   type?: string;
+  required?: boolean;
 }) {
   return (
     <div className="space-y-2">
-      <Label htmlFor={name}>{label}</Label>
+      <Label htmlFor={name}>{label}{required ? <span className="text-destructive"> *</span> : null}</Label>
       <Input id={name} name={name} type={type} defaultValue={defaultValue ?? ""} placeholder={placeholder} />
     </div>
   );

@@ -28,6 +28,7 @@ Run these files in order from the Supabase SQL editor or your migration workflow
 1. `supabase/migrations/001_core_saas_schema.sql`
 2. `supabase/migrations/002_seed_platform_data.sql`
 3. `supabase/migrations/003_crm_base_company_management.sql`
+4. `supabase/migrations/004_contact_person_management.sql`
 
 The first migration creates:
 
@@ -57,6 +58,14 @@ The third migration adds Sprint 3 CRM base tables and settings:
 - pipeline stage color support
 - RLS policies and grants for tenant-scoped CRM settings and company lead records
 - default company categories for each organization
+
+The fourth migration adds Sprint 4 contact person management:
+
+- `contact_persons`
+- tenant-safe RLS and grants
+- company/contact tenant validation trigger
+- single primary contact enforcement per company
+- contact audit-log insert support
 
 ## 4. Auth Settings
 
@@ -124,3 +133,17 @@ After running all three SQL files:
 10. Confirm `activity_logs` has records for create, update, pipeline change, and archive actions.
 
 Company, contact person, meeting, follow-up, document upload, reports, and import/export workflows beyond this base CRUD remain deferred to later sprints.
+
+## 8. Test Contact CRUD
+
+After running all four SQL files:
+
+1. Create or open a company lead.
+2. Open `/contacts/new` or use the company profile Add Contact button.
+3. Create multiple contacts for the same company.
+4. Mark one contact as primary and confirm other contacts for that company are no longer primary.
+5. Open `/contacts` and test search/filter by company, decision role, relationship level, preferred method, and status.
+6. Open `/contacts/[id]` and confirm the contact detail page shows company, role, relationship, communication fields, created by, and created date.
+7. Edit and archive a contact.
+8. Confirm the company profile Contacts section updates with real contact data.
+9. Confirm `activity_logs` has records for contact created, updated, archived, and primary changed.

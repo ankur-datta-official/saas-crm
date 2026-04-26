@@ -1,15 +1,21 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { Building2, CalendarClock, FileText, Handshake, LifeBuoy, NotebookTabs, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CompanyProfileHeader } from "@/components/crm/company-profile-header";
+import { ContactProfileCard } from "@/components/crm/contact-profile-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { StatCard } from "@/components/shared/stat-card";
-import { getCompanyById } from "@/lib/crm/queries";
+import { getCompanyById, getContactsByCompany } from "@/lib/crm/queries";
 import { formatCurrency } from "@/lib/crm/utils";
 
 export default async function CompanyProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const company = await getCompanyById(id);
+  const [company, contacts] = await Promise.all([
+    getCompanyById(id),
+    getContactsByCompany(id),
+  ]);
 
   if (!company) {
     notFound();
@@ -37,13 +43,40 @@ export default async function CompanyProfilePage({ params }: { params: Promise<{
           <Info label="Lead source" value={company.lead_source} />
           <Info label="Priority" value={company.priority} />
           <Info label="Expected closing date" value={company.expected_closing_date} />
+          <Info
+            label="Primary contact"
+            value={company.primary_contact ? `${company.primary_contact.name}${company.primary_contact.mobile ? ` - ${company.primary_contact.mobile}` : ""}` : null}
+          />
           <div className="md:col-span-2">
             <Info label="Notes" value={company.notes} />
           </div>
         </CardContent>
       </Card>
+      <Card>
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <CardTitle>Contacts</CardTitle>
+            <CardDescription>Decision makers and communication points for this company.</CardDescription>
+          </div>
+          <Button asChild>
+            <Link href={`/contacts/new?companyId=${company.id}`}>Add Contact</Link>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {contacts.length === 0 ? (
+            <EmptyState
+              title="No contact persons added yet"
+              description="Add decision makers and communication points for this company."
+              icon={Users}
+            />
+          ) : (
+            <div className="space-y-3">
+              {contacts.map((contact) => <ContactProfileCard key={contact.id} contact={contact} />)}
+            </div>
+          )}
+        </CardContent>
+      </Card>
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <EmptyState title="Contacts" description="Contact person CRUD is planned for a future sprint." icon={Users} />
         <EmptyState title="Meetings" description="Meeting history and notes will connect later." icon={CalendarClock} />
         <EmptyState title="Follow-ups" description="Follow-up workflows are intentionally deferred." icon={Handshake} />
         <EmptyState title="Documents" description="Document uploads and submissions are not built yet." icon={FileText} />
