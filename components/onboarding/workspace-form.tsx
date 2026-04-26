@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRight, Building2 } from "lucide-react";
+import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/shared/page-header";
+import { createWorkspaceAction } from "@/app/(app)/onboarding/workspace/actions";
 
 const workspaceSchema = z.object({
   name: z.string().min(2, "Workspace name is required."),
@@ -20,6 +22,8 @@ type WorkspaceValues = z.infer<typeof workspaceSchema>;
 
 export function WorkspaceForm() {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [serverError, setServerError] = useState<string | null>(null);
   const form = useForm<WorkspaceValues>({
     resolver: zodResolver(workspaceSchema),
     defaultValues: {
@@ -28,8 +32,19 @@ export function WorkspaceForm() {
     },
   });
 
-  function onSubmit() {
-    router.push("/dashboard");
+  function onSubmit(values: WorkspaceValues) {
+    setServerError(null);
+    startTransition(async () => {
+      const result = await createWorkspaceAction(values);
+
+      if (!result.ok) {
+        setServerError(result.error);
+        return;
+      }
+
+      router.push("/dashboard");
+      router.refresh();
+    });
   }
 
   return (
@@ -44,7 +59,7 @@ export function WorkspaceForm() {
             <Building2 className="size-5" />
           </div>
           <CardTitle>Organization details</CardTitle>
-          <CardDescription>Database persistence and tenant policies will be added in a later sprint.</CardDescription>
+          <CardDescription>This creates your tenant, trial subscription, roles, and pipeline stages.</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
@@ -62,7 +77,8 @@ export function WorkspaceForm() {
                 <p className="text-xs text-destructive">{form.formState.errors.companySize.message}</p>
               ) : null}
             </div>
-            <Button type="submit">
+            {serverError ? <p className="rounded-md bg-rose-50 p-3 text-sm text-rose-700">{serverError}</p> : null}
+            <Button type="submit" disabled={isPending || form.formState.isSubmitting}>
               Continue to dashboard
               <ArrowRight />
             </Button>

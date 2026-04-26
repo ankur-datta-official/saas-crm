@@ -1,6 +1,7 @@
 "use client";
 
 import { Bell, Menu, Search } from "lucide-react";
+import { LogoutButton } from "@/components/auth/logout-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -27,6 +28,7 @@ export function AppTopbar({ onMenuClick }: AppTopbarProps) {
           <Bell />
           <span className="sr-only">Notifications</span>
         </Button>
+        <LogoutButton />
         <div className="flex size-10 items-center justify-center rounded-md bg-primary text-sm font-semibold text-primary-foreground">
           AM
         </div>

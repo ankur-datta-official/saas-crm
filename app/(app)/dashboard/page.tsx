@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/shared/stat-card";
 import { StatusBadge } from "@/components/shared/status-badge";
+import { requireOrganization } from "@/lib/auth/session";
 
 const stats = [
   { title: "Total Leads", value: "0", description: "All active lead records", icon: Users, tone: "teal" },
@@ -20,12 +21,14 @@ const stats = [
   { title: "Pipeline Value", value: "$0", description: "Open opportunity value", icon: LineChart, tone: "slate" },
 ] as const;
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const organization = await requireOrganization();
+
   return (
     <div>
       <PageHeader
         title="Dashboard"
-        description="A first-pass CRM command center for leads, meetings, follow-ups, and pipeline health."
+        description={`A first-pass CRM command center for ${organization.name} leads, meetings, follow-ups, and pipeline health.`}
       />
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {stats.map((stat) => (

@@ -1,6 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
-import { env, hasSupabaseEnv } from "@/lib/env";
+import { getSupabaseEnv, hasSupabaseEnv } from "@/lib/env";
 
 type CookieToSet = {
   name: string;
@@ -33,7 +33,8 @@ export async function updateSession(request: NextRequest) {
     return response;
   }
 
-  const supabase = createServerClient(env.supabaseUrl, env.supabaseAnonKey, {
+  const supabaseEnv = getSupabaseEnv();
+  const supabase = createServerClient(supabaseEnv.supabaseUrl, supabaseEnv.supabasePublishableKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll();
@@ -55,6 +56,7 @@ export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isProtected = protectedPrefixes.some((prefix) => pathname.startsWith(prefix));
   const isAuthRoute = authPrefixes.some((prefix) => pathname.startsWith(prefix));
+  const isOnboardingRoute = pathname.startsWith("/onboarding");
 
   if (!user && isProtected) {
     const url = request.nextUrl.clone();
@@ -64,9 +66,29 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user && isAuthRoute) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("organization_id")
+      .eq("id", user.id)
+      .maybeSingle();
+
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    url.pathname = profile?.organization_id ? "/dashboard" : "/onboarding/workspace";
     return NextResponse.redirect(url);
+  }
+
+  if (user && isProtected && !isOnboardingRoute) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("organization_id")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (!profile?.organization_id) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/onboarding/workspace";
+      return NextResponse.redirect(url);
+    }
   }
 
   return response;

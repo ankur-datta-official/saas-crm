@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getAuthErrorMessage } from "@/lib/auth/errors";
 import { createClient } from "@/lib/supabase/client";
 
 const authSchema = z.object({
@@ -44,10 +45,18 @@ export function AuthForm({ mode }: AuthFormProps) {
   async function onSubmit(values: AuthValues) {
     setError(null);
     setMessage(null);
-    const supabase = createClient();
+
+    let supabase: ReturnType<typeof createClient>;
+
+    try {
+      supabase = createClient();
+    } catch (clientError) {
+      setError(clientError instanceof Error ? clientError.message : "Supabase is not configured correctly.");
+      return;
+    }
 
     if (isRegister) {
-      const { error: signUpError } = await supabase.auth.signUp({
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
         options: {
@@ -59,11 +68,16 @@ export function AuthForm({ mode }: AuthFormProps) {
       });
 
       if (signUpError) {
-        setError(signUpError.message);
+        setError(getAuthErrorMessage(signUpError.message));
         return;
       }
 
-      setMessage("Check your email to confirm your account, then create your workspace.");
+      if (!data.session) {
+        setMessage("Account created. Please confirm your email, then sign in to create your workspace.");
+        return;
+      }
+
+      setMessage("Account created. Continue by setting up your workspace.");
       router.push("/onboarding/workspace");
       return;
     }
@@ -74,7 +88,7 @@ export function AuthForm({ mode }: AuthFormProps) {
     });
 
     if (signInError) {
-      setError(signInError.message);
+      setError(getAuthErrorMessage(signInError.message));
       return;
     }
 
