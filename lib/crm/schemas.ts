@@ -98,24 +98,55 @@ export const interactionSchema = z.object({
   company_id: z.string().uuid("Company is required."),
   contact_person_id: optionalUuid,
   assigned_user_id: optionalUuid,
-  interaction_type: z.enum(interactionTypeOptions).default("Phone Call"),
-  meeting_datetime: optionalDate,
+  interaction_type: z.enum(interactionTypeOptions, { errorMap: () => ({ message: "Select a valid interaction type." }) }),
+  meeting_datetime: z.string().min(1, "Date and time is required."),
   location: optionalText,
-  online_meeting_link: optionalUrl("Enter a valid online meeting URL including https://."),
-  discussion_details: z.string().trim().min(2, "Discussion details are required."),
+  online_meeting_link: optionalUrl("Enter a valid URL including https://."),
+  discussion_details: z.string().trim().min(5, "Discussion details are required."),
   client_requirement: optionalText,
   pain_point: optionalText,
   proposed_solution: optionalText,
   budget_discussion: optionalText,
   competitor_mentioned: optionalText,
   decision_timeline: optionalText,
-  success_rating: optionalNumber(z.coerce.number().int().min(1, "Success rating must be between 1 and 10.").max(10, "Success rating must be between 1 and 10.")),
+  success_rating: optionalNumber(z.coerce.number().int().min(1).max(10)),
   lead_temperature: z.enum(["cold", "warm", "hot", "very_hot"]).optional().or(z.literal("")).transform((value) => value || null),
   next_action: optionalText,
   next_followup_at: optionalDate,
   need_help: z.boolean().default(false),
   internal_note: optionalText,
   status: statusSchema.default("active"),
+});
+
+export const followupTypeOptions = [
+  "Phone Call",
+  "Email",
+  "WhatsApp",
+  "Physical Meeting",
+  "Online Meeting",
+  "Quotation Follow-up",
+  "Payment Follow-up",
+  "Technical Follow-up",
+  "Demo Follow-up",
+  "Decision Follow-up",
+  "Other",
+] as const;
+
+export const followupPriorityOptions = ["low", "medium", "high", "urgent"] as const;
+export const followupStatusOptions = ["pending", "completed", "rescheduled", "cancelled", "archived"] as const;
+
+export const followupSchema = z.object({
+  company_id: z.string().uuid("Company is required."),
+  title: z.string().trim().min(2, "Title is required."),
+  scheduled_at: z.string().min(1, "Scheduled date and time is required."),
+  contact_person_id: optionalUuid,
+  interaction_id: optionalUuid,
+  assigned_user_id: optionalUuid,
+  followup_type: z.enum(followupTypeOptions).default("Phone Call"),
+  description: optionalText,
+  reminder_before_minutes: optionalNumberWithDefault(z.coerce.number().int().min(0), 60),
+  priority: z.enum(followupPriorityOptions).default("medium"),
+  status: z.enum(followupStatusOptions).default("pending"),
 });
 
 export const decisionRoleOptions = [

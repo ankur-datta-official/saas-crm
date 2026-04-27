@@ -9,14 +9,17 @@ import { InteractionTimelineCard } from "@/components/crm/interaction-timeline-c
 import { EmptyState } from "@/components/shared/empty-state";
 import { StatCard } from "@/components/shared/stat-card";
 import { getCompanyById, getContactsByCompany, getInteractionsByCompany } from "@/lib/crm/queries";
+import { getFollowupsByCompany } from "@/lib/crm/followup-queries";
 import { formatCurrency } from "@/lib/crm/utils";
+import { FollowupCard } from "@/components/crm/followup-card";
 
 export default async function CompanyProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [company, contacts, interactions] = await Promise.all([
+  const [company, contacts, interactions, followups] = await Promise.all([
     getCompanyById(id),
     getContactsByCompany(id),
     getInteractionsByCompany(id),
+    getFollowupsByCompany(id),
   ]);
 
   if (!company) {
@@ -94,8 +97,34 @@ export default async function CompanyProfilePage({ params }: { params: Promise<{
           )}
         </CardContent>
       </Card>
+      <Card>
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <CardTitle>Follow-ups</CardTitle>
+            <CardDescription>Scheduled actions and reminders for this client.</CardDescription>
+          </div>
+          <Button asChild variant="secondary">
+            <Link href={`/followups/new?company=${company.id}`}>Add Follow-up</Link>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {followups.length === 0 ? (
+            <EmptyState 
+              title="No follow-ups scheduled yet" 
+              description="Create the next action to keep this client moving." 
+              icon={Handshake} 
+            />
+          ) : (
+            <div className="space-y-3">
+              {followups.map((followup) => (
+                <FollowupCard key={followup.id} followup={followup} />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <EmptyState title="Follow-ups" description="Follow-up workflows are intentionally deferred." icon={Handshake} />
         <EmptyState title="Documents" description="Document uploads and submissions are not built yet." icon={FileText} />
         <EmptyState title="Need Help" description="Escalation workflows will be added in a later sprint." icon={LifeBuoy} />
         <EmptyState title="Activity Log" description="Audit records are being captured and can be surfaced later." icon={NotebookTabs} />

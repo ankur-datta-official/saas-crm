@@ -20,8 +20,8 @@ export default async function DashboardPage() {
   const stats = [
     { title: "Total Leads", value: String(metrics.totalCompanies), description: "All active company lead records", icon: Users, tone: "teal" },
     { title: "Hot Leads", value: String(metrics.hotLeads), description: "Leads marked with hot temperature", icon: Flame, tone: "rose" },
-    { title: "Today's Follow-ups", value: "0", description: "Due before end of day", icon: Handshake, tone: "amber" },
-    { title: "Missed Follow-ups", value: "0", description: "Needs immediate review", icon: TimerOff, tone: "rose" },
+    { title: "Today's Follow-ups", value: String(metrics.todaysFollowups), description: "Due before end of day", icon: Handshake, tone: "amber" },
+    { title: "Missed Follow-ups", value: String(metrics.missedFollowups), description: "Needs immediate review", icon: TimerOff, tone: "rose" },
     { title: "Meetings This Week", value: String(metrics.meetingsThisWeek), description: "Logged client interactions this week", icon: CalendarClock, tone: "blue" },
     { title: "Pipeline Value", value: formatCurrency(metrics.pipelineValue), description: "Open company lead value", icon: LineChart, tone: "slate" },
   ] as const;

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, Edit } from "lucide-react";
+import { Building2, Edit, CalendarPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { InteractionTypeBadge } from "@/components/crm/interaction-type-badge";
@@ -17,6 +17,12 @@ export function InteractionDetailHeader({ interaction }: { interaction: Interact
           <p className="mt-2 text-sm text-muted-foreground">{new Date(interaction.meeting_datetime).toLocaleString()}</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline">
+            <Link href={`/followups/new?company=${interaction.company_id}&contact=${interaction.contact_person_id || ""}&interaction=${interaction.id}`}>
+              <CalendarPlus className="mr-2 h-4 w-4" />
+              Create Follow-up
+            </Link>
+          </Button>
           <Button asChild variant="outline"><Link href={`/companies/${interaction.company_id}`}><Building2 />Company</Link></Button>
           <Button asChild><Link href={`/meetings/${interaction.id}/edit`}><Edit />Edit Meeting</Link></Button>
         </div>

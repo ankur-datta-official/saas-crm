@@ -30,6 +30,7 @@ Run these files in order from the Supabase SQL editor or your migration workflow
 3. `supabase/migrations/003_crm_base_company_management.sql`
 4. `supabase/migrations/004_contact_person_management.sql`
 5. `supabase/migrations/005_interaction_meeting_log.sql`
+6. `supabase/migrations/006_followup_reminder_management.sql`
 
 The first migration creates:
 
@@ -74,6 +75,13 @@ The fifth migration adds Sprint 5 meeting and interaction logging:
 - tenant-safe RLS and grants
 - company/contact tenant validation trigger
 - company lead temperature support for `very_hot`
+
+The sixth migration adds Sprint 6 follow-up and reminder management:
+
+- `followups`
+- `email_reminder_logs`
+- tenant-safe RLS and grants
+- company/contact/interaction tenant validation triggers
 
 ## 4. Auth Settings
 
@@ -168,5 +176,24 @@ After running all five SQL files:
 6. Open a company profile and confirm the Meetings section shows the interaction timeline.
 7. Edit the meeting and change success rating.
 8. Confirm the related company latest rating and lead temperature update.
-9. Archive the meeting.
-10. Confirm `activity_logs` records meeting created, updated, archived, company rating updated, and next follow-up added.
+9.171→9. Archive the meeting.
+172→10. Confirm `activity_logs` records meeting created, updated, archived, company rating updated, and next follow-up added.
+173→
+174→## 10. Test Follow-up & Reminder Management
+175→
+176→After running all six SQL files:
+177→
+178→1. Open `/followups/new`.
+179→2. Select a company and enter a title and scheduled time.
+180→3. Save and confirm the follow-up opens at `/followups/[id]`.
+181→4. Confirm `/followups` search and filters (Today, Upcoming, Overdue, etc.) work.
+182→5. Open a company profile and confirm the Follow-ups section shows the real data.
+183→6. On a meeting detail page, click "Create Follow-up" and confirm company/contact/interaction are pre-filled.
+184→7. Mark a follow-up as complete from the list or card and confirm `completed_at` is set.
+185→8. Reschedule, Cancel, or Archive a follow-up and confirm the status changes.
+186→9. Confirm `activity_logs` records follow-up created, updated, completed, rescheduled, cancelled, and archived.
+187→10. Test Email Reminders foundation:
+188→    - Set `REMINDER_EMAIL_ENABLED=false` and `CRON_SECRET=test-secret` in `.env.local`.
+189→    - Call `GET /api/cron/followup-reminders?secret=test-secret`.
+190→    - Confirm the response shows processed items and logs show "[Email Reminder Skipped]".
+191→    - Confirm `email_reminder_logs` has "skipped" records.

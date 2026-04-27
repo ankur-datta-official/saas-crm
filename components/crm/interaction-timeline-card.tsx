@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, CalendarPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,11 @@ export function InteractionTimelineCard({ interaction }: { interaction: Interact
             {interaction.next_action ? <p className="mt-2 text-sm">Next: {interaction.next_action}</p> : null}
           </div>
           <div className="flex gap-1">
+            <Button asChild size="sm" variant="outline" title="Create Follow-up">
+              <Link href={`/followups/new?company=${interaction.company_id}&contact=${interaction.contact_person_id || ""}&interaction=${interaction.id}`}>
+                <CalendarPlus className="h-4 w-4" />
+              </Link>
+            </Button>
             <Button asChild size="sm" variant="outline"><Link href={`/meetings/${interaction.id}`}>View</Link></Button>
             <Button asChild size="icon" variant="ghost"><Link href={`/meetings/${interaction.id}/edit`}><Pencil /><span className="sr-only">Edit</span></Link></Button>
             <Button size="icon" variant="ghost" disabled={isPending} onClick={() => setOpen(true)}><Trash2 /><span className="sr-only">Archive</span></Button>

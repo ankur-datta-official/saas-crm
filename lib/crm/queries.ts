@@ -381,6 +381,16 @@ export async function getInteractionFormOptions() {
   return { companies, contacts, teamMembers };
 }
 
+export async function getFollowupFormOptions() {
+  const [companies, contacts, interactions, teamMembers] = await Promise.all([
+    getCompanies({}),
+    getContacts({}),
+    getInteractions({}),
+    getTeamMembers(),
+  ]);
+  return { companies, contacts, interactions, teamMembers };
+}
+
 export async function getDashboardMetrics() {
   const organization = await requireOrganization();
   const supabase = await createClient();
@@ -391,7 +401,13 @@ export async function getDashboardMetrics() {
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekEnd.getDate() + 7);
 
-  const [totalResult, hotResult, valueResult, contactResult, meetingResult] = await Promise.all([
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(todayStart);
+  todayEnd.setHours(23, 59, 59, 999);
+  const now = new Date();
+
+  const [totalResult, hotResult, valueResult, contactResult, meetingResult, todayFollowupResult, missedFollowupResult] = await Promise.all([
     supabase
       .from("companies")
       .select("id", { count: "exact", head: true })
@@ -420,6 +436,19 @@ export async function getDashboardMetrics() {
       .gte("meeting_datetime", weekStart.toISOString())
       .lt("meeting_datetime", weekEnd.toISOString())
       .neq("status", "archived"),
+    supabase
+      .from("followups")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", organization.id)
+      .eq("status", "pending")
+      .gte("scheduled_at", todayStart.toISOString())
+      .lte("scheduled_at", todayEnd.toISOString()),
+    supabase
+      .from("followups")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", organization.id)
+      .eq("status", "pending")
+      .lt("scheduled_at", now.toISOString()),
   ]);
 
   if (totalResult.error) throw new Error(totalResult.error.message);
@@ -427,6 +456,8 @@ export async function getDashboardMetrics() {
   if (valueResult.error) throw new Error(valueResult.error.message);
   if (contactResult.error) throw new Error(contactResult.error.message);
   if (meetingResult.error) throw new Error(meetingResult.error.message);
+  if (todayFollowupResult.error) throw new Error(todayFollowupResult.error.message);
+  if (missedFollowupResult.error) throw new Error(missedFollowupResult.error.message);
 
   const pipelineValue = (valueResult.data ?? []).reduce(
     (total, company) => total + Number(company.estimated_value ?? 0),
@@ -438,6 +469,8 @@ export async function getDashboardMetrics() {
     hotLeads: hotResult.count ?? 0,
     totalContacts: contactResult.count ?? 0,
     meetingsThisWeek: meetingResult.count ?? 0,
+    todaysFollowups: todayFollowupResult.count ?? 0,
+    missedFollowups: missedFollowupResult.count ?? 0,
     pipelineValue,
   };
 }
