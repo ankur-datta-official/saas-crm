@@ -1,6 +1,7 @@
 import { LucideIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 type StatCardProps = {
   title: string;
@@ -8,6 +9,7 @@ type StatCardProps = {
   description?: string;
   icon: LucideIcon;
   tone?: "teal" | "amber" | "rose" | "blue" | "slate";
+  href?: string;
 };
 
 const toneClasses = {
@@ -18,9 +20,9 @@ const toneClasses = {
   slate: "bg-slate-100 text-slate-700",
 };
 
-export function StatCard({ title, value, description, icon: Icon, tone = "teal" }: StatCardProps) {
-  return (
-    <Card>
+export function StatCard({ title, value, description, icon: Icon, tone = "teal", href }: StatCardProps) {
+  const content = (
+    <Card className={cn(href && "hover:border-primary/50 transition-colors")}>
       <CardContent className="p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
@@ -35,4 +37,14 @@ export function StatCard({ title, value, description, icon: Icon, tone = "teal" 
       </CardContent>
     </Card>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className="block no-underline">
+        {content}
+      </Link>
+    );
+  }
+
+  return content;
 }

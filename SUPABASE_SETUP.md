@@ -235,3 +235,30 @@ After running all eight SQL files:
 13. Open a meeting, follow-up, or document detail page and confirm the "Create Help Request" button links to the correct pre-filled form.
 14. Check the dashboard and confirm the "Open Help Requests" stat card displays the correct count.
 15. Confirm `activity_logs` records help request created, assigned, status changes, and comments added.
+
+### Sprint 9: Reports & Analytics
+1. Access `/reports` in the browser.
+2. Verify that all report tabs load correctly:
+   - Sales Overview (KPIs and Charts)
+   - Leads (Industry/Category distribution)
+   - Pipeline (Funnel and Value by stage)
+   - Meetings (Type and Salesperson distribution)
+   - Follow-ups (Completion rate and Overdue)
+   - Documents (Type and Status distribution)
+   - Help Requests (Priority and Status distribution)
+   - Team Performance (User-wise activity matrix)
+3. Test Global Filters:
+   - Date range (Today, This Week, etc.)
+   - Assigned User
+   - Industry
+   - Pipeline Stage
+   - Lead Temperature
+   - Company Category
+4. Test Export:
+   - Click "Export CSV" on any report table.
+   - Click "Print" to see the print-friendly view.
+5. Verify Tenant Isolation:
+   - Reports should only show data for the current organization.
+   - Filter options (Users, Industries, etc.) should be organization-specific.
+
+## Verification Checklist
