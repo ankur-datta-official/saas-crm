@@ -29,6 +29,7 @@ Run these files in order from the Supabase SQL editor or your migration workflow
 2. `supabase/migrations/002_seed_platform_data.sql`
 3. `supabase/migrations/003_crm_base_company_management.sql`
 4. `supabase/migrations/004_contact_person_management.sql`
+5. `supabase/migrations/005_interaction_meeting_log.sql`
 
 The first migration creates:
 
@@ -66,6 +67,13 @@ The fourth migration adds Sprint 4 contact person management:
 - company/contact tenant validation trigger
 - single primary contact enforcement per company
 - contact audit-log insert support
+
+The fifth migration adds Sprint 5 meeting and interaction logging:
+
+- `interactions`
+- tenant-safe RLS and grants
+- company/contact tenant validation trigger
+- company lead temperature support for `very_hot`
 
 ## 4. Auth Settings
 
@@ -147,3 +155,18 @@ After running all four SQL files:
 7. Edit and archive a contact.
 8. Confirm the company profile Contacts section updates with real contact data.
 9. Confirm `activity_logs` has records for contact created, updated, archived, and primary changed.
+
+## 9. Test Meeting / Interaction Logs
+
+After running all five SQL files:
+
+1. Open `/meetings/new`.
+2. Select a company and enter discussion details.
+3. Add optional rating, lead temperature, next action, and next follow-up date.
+4. Save and confirm the meeting opens at `/meetings/[id]`.
+5. Confirm `/meetings` search and filters work.
+6. Open a company profile and confirm the Meetings section shows the interaction timeline.
+7. Edit the meeting and change success rating.
+8. Confirm the related company latest rating and lead temperature update.
+9. Archive the meeting.
+10. Confirm `activity_logs` records meeting created, updated, archived, company rating updated, and next follow-up added.

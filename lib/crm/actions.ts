@@ -7,8 +7,10 @@ import {
   companyCategorySchema,
   companySchema,
   contactPersonSchema,
+  interactionSchema,
   industrySchema,
   pipelineStageSchema,
+  temperatureFromRating,
 } from "@/lib/crm/schemas";
 import { slugify } from "@/lib/crm/utils";
 import { createClient } from "@/lib/supabase/server";
@@ -176,6 +178,77 @@ async function requireContactInOrganization(contactId: string) {
   }
 
   return { organization, contact: data };
+}
+
+async function validateInteractionRelations(
+  organizationId: string,
+  values: { company_id: string; contact_person_id: string | null; assigned_user_id: string | null },
+) {
+  const supabase = await createClient();
+  const fieldErrors: Record<string, string> = {};
+  const { data: company } = await supabase
+    .from("companies")
+    .select("id")
+    .eq("id", values.company_id)
+    .eq("organization_id", organizationId)
+    .neq("status", "archived")
+    .maybeSingle();
+
+  if (!company) fieldErrors.company_id = "Selected company is not available in this workspace.";
+
+  if (values.contact_person_id) {
+    const { data: contact } = await supabase
+      .from("contact_persons")
+      .select("id")
+      .eq("id", values.contact_person_id)
+      .eq("company_id", values.company_id)
+      .eq("organization_id", organizationId)
+      .neq("status", "archived")
+      .maybeSingle();
+    if (!contact) fieldErrors.contact_person_id = "Selected contact does not belong to this company.";
+  }
+
+  if (values.assigned_user_id) {
+    const { data: assigned } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", values.assigned_user_id)
+      .eq("organization_id", organizationId)
+      .maybeSingle();
+    if (!assigned) fieldErrors.assigned_user_id = "Selected assigned user is not part of this workspace.";
+  }
+
+  return fieldErrors;
+}
+
+async function requireInteractionInOrganization(interactionId: string) {
+  const organization = await requireOrganization();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("interactions")
+    .select("id, company_id, success_rating, lead_temperature")
+    .eq("id", interactionId)
+    .eq("organization_id", organization.id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Meeting was not found in your workspace.");
+  return { organization, interaction: data };
+}
+
+async function updateCompanyRatingFromInteraction(companyId: string, rating: number | null, temperature: string | null) {
+  if (!rating) return;
+  const organization = await requireOrganization();
+  const resolvedTemperature = temperature ?? temperatureFromRating(rating);
+  const supabase = await createClient();
+  await supabase
+    .from("companies")
+    .update({ success_rating: rating, lead_temperature: resolvedTemperature })
+    .eq("id", companyId)
+    .eq("organization_id", organization.id);
+  await insertActivityLog("company.rating_updated_from_meeting", "company", companyId, {
+    success_rating: rating,
+    lead_temperature: resolvedTemperature,
+  });
 }
 
 export async function createIndustryAction(values: unknown): Promise<CrmActionState> {
@@ -541,6 +614,90 @@ export async function archiveContactAction(id: string): Promise<CrmActionState> 
     return { ok: true };
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : "Unable to archive contact." };
+  }
+}
+
+export async function createInteractionAction(values: unknown): Promise<CrmActionState> {
+  const user = await requireAuth();
+  const organization = await requireOrganization();
+  const parsed = interactionSchema.safeParse(values);
+  if (!parsed.success) return getValidationState(parsed.error);
+
+  const relationErrors = await validateInteractionRelations(organization.id, parsed.data);
+  if (Object.keys(relationErrors).length > 0) return { ok: false, error: Object.values(relationErrors)[0], fieldErrors: relationErrors };
+
+  const meetingDatetime = parsed.data.meeting_datetime ?? new Date().toISOString();
+  const leadTemperature = parsed.data.lead_temperature ?? temperatureFromRating(parsed.data.success_rating);
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("interactions")
+    .insert({
+      ...parsed.data,
+      meeting_datetime: meetingDatetime,
+      lead_temperature: leadTemperature,
+      organization_id: organization.id,
+      created_by: user.id,
+      updated_by: user.id,
+    })
+    .select("id")
+    .single();
+
+  if (error) return { ok: false, error: error.message };
+  await insertActivityLog("meeting.created", "interaction", data.id, { company_id: parsed.data.company_id });
+  if (parsed.data.next_followup_at) await insertActivityLog("meeting.next_followup_added", "interaction", data.id, { next_followup_at: parsed.data.next_followup_at });
+  await updateCompanyRatingFromInteraction(parsed.data.company_id, parsed.data.success_rating, leadTemperature);
+  revalidatePath("/meetings");
+  revalidatePath(`/companies/${parsed.data.company_id}`);
+  return { ok: true, id: data.id };
+}
+
+export async function updateInteractionAction(id: string, values: unknown): Promise<CrmActionState> {
+  const parsed = interactionSchema.safeParse(values);
+  if (!parsed.success) return getValidationState(parsed.error);
+
+  try {
+    const { organization, interaction } = await requireInteractionInOrganization(id);
+    const relationErrors = await validateInteractionRelations(organization.id, parsed.data);
+    if (Object.keys(relationErrors).length > 0) return { ok: false, error: Object.values(relationErrors)[0], fieldErrors: relationErrors };
+
+    const leadTemperature = parsed.data.lead_temperature ?? temperatureFromRating(parsed.data.success_rating);
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("interactions")
+      .update({ ...parsed.data, lead_temperature: leadTemperature, meeting_datetime: parsed.data.meeting_datetime ?? new Date().toISOString() })
+      .eq("id", id)
+      .eq("organization_id", organization.id);
+
+    if (error) return { ok: false, error: error.message };
+    await insertActivityLog("meeting.updated", "interaction", id, { company_id: parsed.data.company_id });
+    if (parsed.data.next_followup_at) await insertActivityLog("meeting.next_followup_added", "interaction", id, { next_followup_at: parsed.data.next_followup_at });
+    await updateCompanyRatingFromInteraction(parsed.data.company_id, parsed.data.success_rating, leadTemperature);
+    revalidatePath("/meetings");
+    revalidatePath(`/meetings/${id}`);
+    revalidatePath(`/companies/${interaction.company_id}`);
+    revalidatePath(`/companies/${parsed.data.company_id}`);
+    return { ok: true, id };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Unable to update meeting." };
+  }
+}
+
+export async function archiveInteractionAction(id: string): Promise<CrmActionState> {
+  try {
+    const { organization, interaction } = await requireInteractionInOrganization(id);
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("interactions")
+      .update({ status: "archived" })
+      .eq("id", id)
+      .eq("organization_id", organization.id);
+    if (error) return { ok: false, error: error.message };
+    await insertActivityLog("meeting.archived", "interaction", id, { company_id: interaction.company_id });
+    revalidatePath("/meetings");
+    revalidatePath(`/companies/${interaction.company_id}`);
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Unable to archive meeting." };
   }
 }
 

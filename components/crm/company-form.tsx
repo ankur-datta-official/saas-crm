@@ -164,6 +164,7 @@ export function CompanyForm({ company, industries, categories, stages, teamMembe
           <option value="cold">Cold</option>
           <option value="warm">Warm</option>
           <option value="hot">Hot</option>
+          <option value="very_hot">Very Hot</option>
         </SelectField>
         <Field label="Estimated value" error={form.formState.errors.estimated_value?.message ?? serverFieldErrors.estimated_value}>
           <Input type="number" min={0} step="0.01" {...form.register("estimated_value")} />

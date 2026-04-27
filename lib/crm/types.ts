@@ -1,6 +1,18 @@
 export type RecordStatus = "active" | "inactive" | "archived";
 export type CompanyPriority = "low" | "medium" | "high" | "urgent";
-export type LeadTemperature = "cold" | "warm" | "hot";
+export type LeadTemperature = "cold" | "warm" | "hot" | "very_hot";
+export type InteractionType =
+  | "Phone Call"
+  | "Physical Meeting"
+  | "Online Meeting"
+  | "WhatsApp Discussion"
+  | "Email Follow-up"
+  | "Demo Meeting"
+  | "Technical Meeting"
+  | "Quotation Discussion"
+  | "Payment Discussion"
+  | "Closing Meeting"
+  | "Other";
 export type DecisionRole =
   | "Owner"
   | "CEO / MD"
@@ -142,5 +154,52 @@ export type ContactFilters = {
   decisionRole?: string;
   relationshipLevel?: string;
   preferredMethod?: string;
+  status?: string;
+};
+
+export type Interaction = {
+  id: string;
+  organization_id: string;
+  company_id: string;
+  contact_person_id: string | null;
+  assigned_user_id: string | null;
+  interaction_type: InteractionType;
+  meeting_datetime: string;
+  location: string | null;
+  online_meeting_link: string | null;
+  discussion_details: string;
+  client_requirement: string | null;
+  pain_point: string | null;
+  proposed_solution: string | null;
+  budget_discussion: string | null;
+  competitor_mentioned: string | null;
+  decision_timeline: string | null;
+  success_rating: number | null;
+  lead_temperature: LeadTemperature | null;
+  next_action: string | null;
+  next_followup_at: string | null;
+  need_help: boolean;
+  internal_note: string | null;
+  status: RecordStatus;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+  companies?: Pick<Company, "id" | "name"> | null;
+  contact_persons?: Pick<ContactPerson, "id" | "name" | "mobile" | "email"> | null;
+  assigned_profile?: TeamMemberOption | null;
+  created_profile?: TeamMemberOption | null;
+};
+
+export type InteractionFilters = {
+  search?: string;
+  company?: string;
+  contact?: string;
+  type?: string;
+  ratingMin?: string;
+  ratingMax?: string;
+  temperature?: string;
+  dateFrom?: string;
+  dateTo?: string;
   status?: string;
 };

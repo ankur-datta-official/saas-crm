@@ -6,6 +6,8 @@ import type {
   CompanyFilters,
   ContactFilters,
   ContactPerson,
+  Interaction,
+  InteractionFilters,
   Industry,
   PipelineStage,
   TeamMemberOption,
@@ -287,6 +289,73 @@ export async function getContactById(contactId: string) {
   return data as ContactPerson | null;
 }
 
+const interactionSelect = `
+  *,
+  companies(id, name),
+  contact_persons(id, name, mobile, email),
+  assigned_profile:profiles!interactions_assigned_user_id_fkey(id, full_name, email),
+  created_profile:profiles!interactions_created_by_fkey(id, full_name, email)
+`;
+
+export async function getInteractions(filters: InteractionFilters = {}) {
+  const organization = await requireOrganization();
+  const supabase = await createClient();
+  let query = supabase
+    .from("interactions")
+    .select(interactionSelect)
+    .eq("organization_id", organization.id)
+    .neq("status", "archived")
+    .order("meeting_datetime", { ascending: false });
+
+  if (filters.search) {
+    const search = filters.search.trim();
+    query = query.or(`discussion_details.ilike.%${search}%,next_action.ilike.%${search}%`);
+  }
+  if (filters.company) query = query.eq("company_id", filters.company);
+  if (filters.contact) query = query.eq("contact_person_id", filters.contact);
+  if (filters.type) query = query.eq("interaction_type", filters.type);
+  if (filters.ratingMin) query = query.gte("success_rating", Number(filters.ratingMin));
+  if (filters.ratingMax) query = query.lte("success_rating", Number(filters.ratingMax));
+  if (filters.temperature) query = query.eq("lead_temperature", filters.temperature);
+  if (filters.dateFrom) query = query.gte("meeting_datetime", filters.dateFrom);
+  if (filters.dateTo) query = query.lte("meeting_datetime", filters.dateTo);
+  if (filters.status) query = query.eq("status", filters.status);
+
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Interaction[];
+}
+
+export async function getInteractionsByCompany(companyId: string, includeArchived = false) {
+  const organization = await requireOrganization();
+  const supabase = await createClient();
+  let query = supabase
+    .from("interactions")
+    .select(interactionSelect)
+    .eq("organization_id", organization.id)
+    .eq("company_id", companyId)
+    .order("meeting_datetime", { ascending: false });
+
+  if (!includeArchived) query = query.neq("status", "archived");
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Interaction[];
+}
+
+export async function getInteractionById(interactionId: string) {
+  const organization = await requireOrganization();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("interactions")
+    .select(interactionSelect)
+    .eq("id", interactionId)
+    .eq("organization_id", organization.id)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data as Interaction | null;
+}
+
 export async function getCompanyFormOptions() {
   const [industries, categories, stages, teamMembers] = await Promise.all([
     getIndustries(),
@@ -303,11 +372,26 @@ export async function getContactFormOptions() {
   return { companies };
 }
 
+export async function getInteractionFormOptions() {
+  const [companies, contacts, teamMembers] = await Promise.all([
+    getCompanies({}),
+    getContacts({}),
+    getTeamMembers(),
+  ]);
+  return { companies, contacts, teamMembers };
+}
+
 export async function getDashboardMetrics() {
   const organization = await requireOrganization();
   const supabase = await createClient();
 
-  const [totalResult, hotResult, valueResult, contactResult] = await Promise.all([
+  const weekStart = new Date();
+  weekStart.setHours(0, 0, 0, 0);
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 7);
+
+  const [totalResult, hotResult, valueResult, contactResult, meetingResult] = await Promise.all([
     supabase
       .from("companies")
       .select("id", { count: "exact", head: true })
@@ -329,12 +413,20 @@ export async function getDashboardMetrics() {
       .select("id", { count: "exact", head: true })
       .eq("organization_id", organization.id)
       .neq("status", "archived"),
+    supabase
+      .from("interactions")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", organization.id)
+      .gte("meeting_datetime", weekStart.toISOString())
+      .lt("meeting_datetime", weekEnd.toISOString())
+      .neq("status", "archived"),
   ]);
 
   if (totalResult.error) throw new Error(totalResult.error.message);
   if (hotResult.error) throw new Error(hotResult.error.message);
   if (valueResult.error) throw new Error(valueResult.error.message);
   if (contactResult.error) throw new Error(contactResult.error.message);
+  if (meetingResult.error) throw new Error(meetingResult.error.message);
 
   const pipelineValue = (valueResult.data ?? []).reduce(
     (total, company) => total + Number(company.estimated_value ?? 0),
@@ -345,6 +437,7 @@ export async function getDashboardMetrics() {
     totalCompanies: totalResult.count ?? 0,
     hotLeads: hotResult.count ?? 0,
     totalContacts: contactResult.count ?? 0,
+    meetingsThisWeek: meetingResult.count ?? 0,
     pipelineValue,
   };
 }

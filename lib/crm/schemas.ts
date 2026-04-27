@@ -66,10 +66,56 @@ export const companySchema = z.object({
   city: optionalText,
   country: optionalText,
   success_rating: optionalNumber(z.coerce.number().int().min(1, "Success rating must be between 1 and 10.").max(10, "Success rating must be between 1 and 10.")),
-  lead_temperature: z.enum(["cold", "warm", "hot"]),
+  lead_temperature: z.enum(["cold", "warm", "hot", "very_hot"]),
   estimated_value: optionalNumber(z.coerce.number().min(0, "Estimated value must be zero or greater.")),
   expected_closing_date: optionalDate,
   notes: optionalText,
+});
+
+export const interactionTypeOptions = [
+  "Phone Call",
+  "Physical Meeting",
+  "Online Meeting",
+  "WhatsApp Discussion",
+  "Email Follow-up",
+  "Demo Meeting",
+  "Technical Meeting",
+  "Quotation Discussion",
+  "Payment Discussion",
+  "Closing Meeting",
+  "Other",
+] as const;
+
+export function temperatureFromRating(rating: number | null | undefined) {
+  if (!rating) return null;
+  if (rating <= 3) return "cold";
+  if (rating <= 6) return "warm";
+  if (rating <= 8) return "hot";
+  return "very_hot";
+}
+
+export const interactionSchema = z.object({
+  company_id: z.string().uuid("Company is required."),
+  contact_person_id: optionalUuid,
+  assigned_user_id: optionalUuid,
+  interaction_type: z.enum(interactionTypeOptions).default("Phone Call"),
+  meeting_datetime: optionalDate,
+  location: optionalText,
+  online_meeting_link: optionalUrl("Enter a valid online meeting URL including https://."),
+  discussion_details: z.string().trim().min(2, "Discussion details are required."),
+  client_requirement: optionalText,
+  pain_point: optionalText,
+  proposed_solution: optionalText,
+  budget_discussion: optionalText,
+  competitor_mentioned: optionalText,
+  decision_timeline: optionalText,
+  success_rating: optionalNumber(z.coerce.number().int().min(1, "Success rating must be between 1 and 10.").max(10, "Success rating must be between 1 and 10.")),
+  lead_temperature: z.enum(["cold", "warm", "hot", "very_hot"]).optional().or(z.literal("")).transform((value) => value || null),
+  next_action: optionalText,
+  next_followup_at: optionalDate,
+  need_help: z.boolean().default(false),
+  internal_note: optionalText,
+  status: statusSchema.default("active"),
 });
 
 export const decisionRoleOptions = [
@@ -128,3 +174,5 @@ export type CompanyInput = z.infer<typeof companySchema>;
 export type CompanyFormValues = z.input<typeof companySchema>;
 export type ContactPersonInput = z.infer<typeof contactPersonSchema>;
 export type ContactPersonFormValues = z.input<typeof contactPersonSchema>;
+export type InteractionInput = z.infer<typeof interactionSchema>;
+export type InteractionFormValues = z.input<typeof interactionSchema>;

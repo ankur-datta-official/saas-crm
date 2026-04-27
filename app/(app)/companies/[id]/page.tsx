@@ -5,16 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CompanyProfileHeader } from "@/components/crm/company-profile-header";
 import { ContactProfileCard } from "@/components/crm/contact-profile-card";
+import { InteractionTimelineCard } from "@/components/crm/interaction-timeline-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { StatCard } from "@/components/shared/stat-card";
-import { getCompanyById, getContactsByCompany } from "@/lib/crm/queries";
+import { getCompanyById, getContactsByCompany, getInteractionsByCompany } from "@/lib/crm/queries";
 import { formatCurrency } from "@/lib/crm/utils";
 
 export default async function CompanyProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [company, contacts] = await Promise.all([
+  const [company, contacts, interactions] = await Promise.all([
     getCompanyById(id),
     getContactsByCompany(id),
+    getInteractionsByCompany(id),
   ]);
 
   if (!company) {
@@ -76,8 +78,23 @@ export default async function CompanyProfilePage({ params }: { params: Promise<{
           )}
         </CardContent>
       </Card>
+      <Card>
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <CardTitle>Meetings</CardTitle>
+            <CardDescription>Calls, meetings, demos, and sales interaction history.</CardDescription>
+          </div>
+          <Button asChild><Link href={`/meetings/new?companyId=${company.id}`}>Add Meeting</Link></Button>
+        </CardHeader>
+        <CardContent>
+          {interactions.length === 0 ? (
+            <EmptyState title="No meeting history yet" description="Add your first client interaction to start tracking progress." icon={CalendarClock} />
+          ) : (
+            <div className="space-y-3">{interactions.map((interaction) => <InteractionTimelineCard key={interaction.id} interaction={interaction} />)}</div>
+          )}
+        </CardContent>
+      </Card>
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <EmptyState title="Meetings" description="Meeting history and notes will connect later." icon={CalendarClock} />
         <EmptyState title="Follow-ups" description="Follow-up workflows are intentionally deferred." icon={Handshake} />
         <EmptyState title="Documents" description="Document uploads and submissions are not built yet." icon={FileText} />
         <EmptyState title="Need Help" description="Escalation workflows will be added in a later sprint." icon={LifeBuoy} />
