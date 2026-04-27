@@ -284,3 +284,70 @@ export type FollowupFilters = {
   dateStart?: string;
   dateEnd?: string;
 };
+
+export type DocumentType =
+  | "Company Profile"
+  | "Brochure"
+  | "Quotation"
+  | "Technical Proposal"
+  | "Financial Proposal"
+  | "Agreement"
+  | "Presentation"
+  | "BOQ"
+  | "Meeting File"
+  | "Product Catalogue"
+  | "Invoice"
+  | "Purchase Order"
+  | "Other";
+
+export type DocumentStatus =
+  | "draft"
+  | "submitted"
+  | "seen"
+  | "revision_requested"
+  | "approved"
+  | "rejected"
+  | "archived";
+
+export type Document = {
+  id: string;
+  organization_id: string;
+  company_id: string;
+  contact_person_id: string | null;
+  interaction_id: string | null;
+  followup_id: string | null;
+  document_type: DocumentType;
+  title: string;
+  description: string | null;
+  file_name: string;
+  file_path: string;
+  file_url: string | null;
+  file_size_mb: number | null;
+  mime_type: string | null;
+  file_extension: string | null;
+  status: DocumentStatus;
+  submitted_to: string | null;
+  submitted_at: string | null;
+  expiry_date: string | null;
+  remarks: string | null;
+  created_by: string | null;
+  updated_by: string | null;
+  uploaded_by: string | null;
+  created_at: string;
+  updated_at: string;
+  companies?: Pick<Company, "id" | "name"> | null;
+  contact_persons?: Pick<ContactPerson, "id" | "name" | "mobile" | "email"> | null;
+  interactions?: Pick<Interaction, "id" | "interaction_type" | "meeting_datetime"> | null;
+  followups?: Pick<Followup, "id" | "title" | "scheduled_at"> | null;
+  uploaded_profile?: TeamMemberOption | null;
+};
+
+export type DocumentFilters = {
+  search?: string;
+  company?: string;
+  type?: string;
+  status?: string;
+  uploadedBy?: string;
+  dateFrom?: string;
+  dateTo?: string;
+};

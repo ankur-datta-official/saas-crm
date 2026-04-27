@@ -207,3 +207,47 @@ export type ContactPersonInput = z.infer<typeof contactPersonSchema>;
 export type ContactPersonFormValues = z.input<typeof contactPersonSchema>;
 export type InteractionInput = z.infer<typeof interactionSchema>;
 export type InteractionFormValues = z.input<typeof interactionSchema>;
+
+export const documentTypeOptions = [
+  "Company Profile",
+  "Brochure",
+  "Quotation",
+  "Technical Proposal",
+  "Financial Proposal",
+  "Agreement",
+  "Presentation",
+  "BOQ",
+  "Meeting File",
+  "Product Catalogue",
+  "Invoice",
+  "Purchase Order",
+  "Other",
+] as const;
+
+export const documentStatusOptions = [
+  "draft",
+  "submitted",
+  "seen",
+  "revision_requested",
+  "approved",
+  "rejected",
+  "archived",
+] as const;
+
+export const documentSchema = z.object({
+  company_id: z.string().uuid("Company is required."),
+  title: z.string().trim().min(2, "Document title is required."),
+  document_type: z.enum(documentTypeOptions, { errorMap: () => ({ message: "Select a valid document type." }) }),
+  description: optionalText,
+  contact_person_id: optionalUuid,
+  interaction_id: optionalUuid,
+  followup_id: optionalUuid,
+  status: z.enum(documentStatusOptions).default("submitted"),
+  submitted_to: optionalText,
+  submitted_at: optionalDate,
+  expiry_date: optionalDate,
+  remarks: optionalText,
+});
+
+export type DocumentInput = z.infer<typeof documentSchema>;
+export type DocumentFormValues = z.input<typeof documentSchema>;

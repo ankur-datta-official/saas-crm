@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Building2, CalendarClock, FileText, Handshake, LifeBuoy, NotebookTabs, Users } from "lucide-react";
+import { Building2, CalendarClock, FileText, Handshake, LifeBuoy, NotebookTabs, Users, Plus, Download, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CompanyProfileHeader } from "@/components/crm/company-profile-header";
@@ -10,16 +10,20 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { StatCard } from "@/components/shared/stat-card";
 import { getCompanyById, getContactsByCompany, getInteractionsByCompany } from "@/lib/crm/queries";
 import { getFollowupsByCompany } from "@/lib/crm/followup-queries";
+import { getDocumentsByCompany } from "@/lib/crm/document-queries";
 import { formatCurrency } from "@/lib/crm/utils";
 import { FollowupCard } from "@/components/crm/followup-card";
+import { DocumentCard } from "@/components/crm/document-card";
+import { DocumentTypeBadge, DocumentStatusBadge } from "@/components/crm/document-badges";
 
 export default async function CompanyProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [company, contacts, interactions, followups] = await Promise.all([
+  const [company, contacts, interactions, followups, documents] = await Promise.all([
     getCompanyById(id),
     getContactsByCompany(id),
     getInteractionsByCompany(id),
     getFollowupsByCompany(id),
+    getDocumentsByCompany(id),
   ]);
 
   if (!company) {
@@ -124,8 +128,46 @@ export default async function CompanyProfilePage({ params }: { params: Promise<{
         </CardContent>
       </Card>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <EmptyState title="Documents" description="Document uploads and submissions are not built yet." icon={FileText} />
+      <Card>
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <CardTitle>Documents</CardTitle>
+            <CardDescription>Quotations, proposals, brochures, and agreements for this company.</CardDescription>
+          </div>
+          <Button asChild>
+            <Link href={`/documents/new?companyId=${company.id}`}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Document
+            </Link>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {documents.length === 0 ? (
+            <EmptyState
+              title="No documents submitted yet"
+              description="Upload quotations, proposals, brochures, or agreements for this company."
+              icon={FileText}
+            />
+          ) : (
+            <div className="space-y-3">
+              {documents.slice(0, 5).map((doc) => (
+                <DocumentCard key={doc.id} document={doc} />
+              ))}
+              {documents.length > 5 && (
+                <div className="pt-2">
+                  <Button asChild variant="outline" size="sm">
+                    <Link href={`/documents?company=${company.id}`}>
+                      View all {documents.length} documents
+                    </Link>
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-2">
         <EmptyState title="Need Help" description="Escalation workflows will be added in a later sprint." icon={LifeBuoy} />
         <EmptyState title="Activity Log" description="Audit records are being captured and can be surfaced later." icon={NotebookTabs} />
       </section>

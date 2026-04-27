@@ -31,6 +31,7 @@ Run these files in order from the Supabase SQL editor or your migration workflow
 4. `supabase/migrations/004_contact_person_management.sql`
 5. `supabase/migrations/005_interaction_meeting_log.sql`
 6. `supabase/migrations/006_followup_reminder_management.sql`
+7. `supabase/migrations/007_document_management.sql`
 
 The first migration creates:
 
@@ -191,9 +192,25 @@ After running all five SQL files:
 183→6. On a meeting detail page, click "Create Follow-up" and confirm company/contact/interaction are pre-filled.
 184→7. Mark a follow-up as complete from the list or card and confirm `completed_at` is set.
 185→8. Reschedule, Cancel, or Archive a follow-up and confirm the status changes.
-186→9. Confirm `activity_logs` records follow-up created, updated, completed, rescheduled, cancelled, and archived.
-187→10. Test Email Reminders foundation:
-188→    - Set `REMINDER_EMAIL_ENABLED=false` and `CRON_SECRET=test-secret` in `.env.local`.
-189→    - Call `GET /api/cron/followup-reminders?secret=test-secret`.
-190→    - Confirm the response shows processed items and logs show "[Email Reminder Skipped]".
-191→    - Confirm `email_reminder_logs` has "skipped" records.
+9. Confirm `activity_logs` records follow-up created, updated, completed, rescheduled, cancelled, and archived.
+10. Test Email Reminders foundation:
+    - Set `REMINDER_EMAIL_ENABLED=false` and `CRON_SECRET=test-secret` in `.env.local`.
+    - Call `GET /api/cron/followup-reminders?secret=test-secret`.
+    - Confirm the response shows processed items and logs show "[Email Reminder Skipped]".
+    - Confirm `email_reminder_logs` has "skipped" records.
+
+## 11. Test Document Management
+
+After running all seven SQL files:
+
+1. Create a storage bucket named `crm-documents` in the Supabase Dashboard (Storage section).
+   - Set the bucket to **Private**.
+2. Open `/documents/new`.
+3. Select a company, enter a title, and upload a file.
+4. Confirm the document detail page opens at `/documents/[id]`.
+5. Test downloading the file.
+6. Open `/documents` and test filters by company, type, and status.
+7. Edit a document and change its status.
+8. Archive or Delete a document and confirm it's removed or hidden.
+9. Confirm `activity_logs` records document created, updated, archived, and deleted.
+10. Verify that files are correctly uploaded to the `crm-documents` bucket in a folder structure like `organization_id/file_name`.

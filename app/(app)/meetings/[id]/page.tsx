@@ -1,13 +1,22 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
+import { Plus, FileText } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { InteractionDetailHeader } from "@/components/crm/interaction-detail-header";
 import { LeadTemperatureBadge } from "@/components/crm/lead-temperature-badge";
 import { RatingBadge } from "@/components/crm/rating-badge";
+import { DocumentCard } from "@/components/crm/document-card";
+import { EmptyState } from "@/components/shared/empty-state";
 import { getInteractionById } from "@/lib/crm/queries";
+import { getDocumentsByInteraction } from "@/lib/crm/document-queries";
 
 export default async function MeetingDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const interaction = await getInteractionById(id);
+  const [interaction, documents] = await Promise.all([
+    getInteractionById(id),
+    getDocumentsByInteraction(id),
+  ]);
   if (!interaction) notFound();
   return (
     <div className="space-y-5">
@@ -35,6 +44,35 @@ export default async function MeetingDetailPage({ params }: { params: Promise<{ 
           <Info label="Created date" value={new Date(interaction.created_at).toLocaleDateString()} />
           <div className="md:col-span-2 xl:col-span-3"><Info label="Discussion details" value={interaction.discussion_details} /></div>
           <div className="md:col-span-2 xl:col-span-3"><Info label="Internal note" value={interaction.internal_note} /></div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <CardTitle>Related Documents</CardTitle>
+            <CardDescription>Files shared or discussed during this meeting.</CardDescription>
+          </div>
+          <Button asChild>
+            <Link href={`/documents/new?companyId=${interaction.company_id}&contactId=${interaction.contact_person_id}&interactionId=${interaction.id}`}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Document
+            </Link>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {documents.length === 0 ? (
+            <EmptyState
+              title="No documents for this meeting"
+              description="Upload files shared or discussed during this interaction."
+              icon={FileText}
+            />
+          ) : (
+            <div className="space-y-3">
+              {documents.map((doc) => (
+                <DocumentCard key={doc.id} document={doc} />
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

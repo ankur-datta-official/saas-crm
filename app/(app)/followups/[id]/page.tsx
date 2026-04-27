@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { Plus, FileText } from "lucide-react";
 import { 
   Building2, 
   User, 
@@ -8,11 +9,15 @@ import {
   Clock, 
   UserPlus, 
   AlertCircle,
-  FileText,
+  FileText as FileTextIcon,
   History
 } from "lucide-react";
 import { getFollowupById } from "@/lib/crm/followup-queries";
+import { getDocumentsByFollowup } from "@/lib/crm/document-queries";
 import { FollowupDetailHeader } from "@/components/crm/followup-detail-header";
+import { DocumentCard } from "@/components/crm/document-card";
+import { EmptyState } from "@/components/shared/empty-state";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
@@ -26,7 +31,10 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function FollowupDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const followup = await getFollowupById(id);
+  const [followup, documents] = await Promise.all([
+    getFollowupById(id),
+    getDocumentsByFollowup(id),
+  ]);
 
   if (!followup) {
     notFound();
@@ -41,7 +49,7 @@ export default async function FollowupDetailPage({ params }: { params: Promise<{
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-primary" />
+                <FileTextIcon className="h-5 w-5 text-primary" />
                 Description & Notes
               </CardTitle>
             </CardHeader>
@@ -105,6 +113,38 @@ export default async function FollowupDetailPage({ params }: { params: Promise<{
               </CardContent>
             </Card>
           )}
+
+          <Card>
+            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-primary" />
+                  Related Documents
+                </CardTitle>
+              </div>
+              <Button asChild>
+                <Link href={`/documents/new?companyId=${followup.company_id}&contactId=${followup.contact_person_id}&interactionId=${followup.interaction_id}&followupId=${followup.id}`}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Document
+                </Link>
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {documents.length === 0 ? (
+                <EmptyState
+                  title="No documents for this follow-up"
+                  description="Upload files related to this follow-up task."
+                  icon={FileText}
+                />
+              ) : (
+                <div className="space-y-3">
+                  {documents.map((doc) => (
+                    <DocumentCard key={doc.id} document={doc} />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         <div className="space-y-6">

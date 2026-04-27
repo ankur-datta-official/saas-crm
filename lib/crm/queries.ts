@@ -1,5 +1,6 @@
 import { requireOrganization } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { getFollowups } from "./followup-queries";
 import type {
   Company,
   CompanyCategory,
@@ -389,6 +390,17 @@ export async function getFollowupFormOptions() {
     getTeamMembers(),
   ]);
   return { companies, contacts, interactions, teamMembers };
+}
+
+export async function getDocumentFormOptions() {
+  const [companies, contacts, interactions, followups, teamMembers] = await Promise.all([
+    getCompanies({}),
+    getContacts({}),
+    getInteractions({}),
+    getFollowups({}),
+    getTeamMembers(),
+  ]);
+  return { companies, contacts, interactions, followups, teamMembers };
 }
 
 export async function getDashboardMetrics() {
