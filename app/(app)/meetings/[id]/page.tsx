@@ -52,12 +52,20 @@ export default async function MeetingDetailPage({ params }: { params: Promise<{ 
             <CardTitle>Related Documents</CardTitle>
             <CardDescription>Files shared or discussed during this meeting.</CardDescription>
           </div>
-          <Button asChild>
-            <Link href={`/documents/new?companyId=${interaction.company_id}&contactId=${interaction.contact_person_id}&interactionId=${interaction.id}`}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Document
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button asChild>
+              <Link href={`/need-help/new?company=${interaction.company_id}&contact=${interaction.contact_person_id}&interaction=${interaction.id}`}>
+                <Plus className="w-4 h-4 mr-2" />
+                Create Help Request
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link href={`/documents/new?companyId=${interaction.company_id}&contactId=${interaction.contact_person_id}&interactionId=${interaction.id}`}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Document
+              </Link>
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {documents.length === 0 ? (

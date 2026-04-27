@@ -122,12 +122,20 @@ export default async function FollowupDetailPage({ params }: { params: Promise<{
                   Related Documents
                 </CardTitle>
               </div>
-              <Button asChild>
-                <Link href={`/documents/new?companyId=${followup.company_id}&contactId=${followup.contact_person_id}&interactionId=${followup.interaction_id}&followupId=${followup.id}`}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Document
-                </Link>
-              </Button>
+              <div className="flex gap-2">
+                <Button asChild>
+                  <Link href={`/need-help/new?company=${followup.company_id}&contact=${followup.contact_person_id}&followup=${followup.id}`}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Help Request
+                  </Link>
+                </Button>
+                <Button asChild>
+                  <Link href={`/documents/new?companyId=${followup.company_id}&contactId=${followup.contact_person_id}&interactionId=${followup.interaction_id}&followupId=${followup.id}`}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Document
+                  </Link>
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {documents.length === 0 ? (

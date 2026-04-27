@@ -19,6 +19,7 @@ type ConfirmModalProps = {
   cancelLabel?: string;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
+  children?: React.ReactNode;
 };
 
 export function ConfirmModal({
@@ -29,6 +30,7 @@ export function ConfirmModal({
   cancelLabel = "Cancel",
   onOpenChange,
   onConfirm,
+  children,
 }: ConfirmModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -37,6 +39,7 @@ export function ConfirmModal({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
+        {children}
         <DialogFooter>
           <DialogClose asChild>
             <Button variant="outline">{cancelLabel}</Button>

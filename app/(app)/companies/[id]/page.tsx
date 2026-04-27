@@ -11,19 +11,22 @@ import { StatCard } from "@/components/shared/stat-card";
 import { getCompanyById, getContactsByCompany, getInteractionsByCompany } from "@/lib/crm/queries";
 import { getFollowupsByCompany } from "@/lib/crm/followup-queries";
 import { getDocumentsByCompany } from "@/lib/crm/document-queries";
+import { getHelpRequestsByCompany } from "@/lib/crm/help-request-queries";
 import { formatCurrency } from "@/lib/crm/utils";
 import { FollowupCard } from "@/components/crm/followup-card";
 import { DocumentCard } from "@/components/crm/document-card";
+import { HelpRequestCard } from "@/components/crm/help-request-card";
 import { DocumentTypeBadge, DocumentStatusBadge } from "@/components/crm/document-badges";
 
 export default async function CompanyProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [company, contacts, interactions, followups, documents] = await Promise.all([
+  const [company, contacts, interactions, followups, documents, helpRequests] = await Promise.all([
     getCompanyById(id),
     getContactsByCompany(id),
     getInteractionsByCompany(id),
     getFollowupsByCompany(id),
     getDocumentsByCompany(id),
+    getHelpRequestsByCompany(id),
   ]);
 
   if (!company) {
@@ -167,8 +170,37 @@ export default async function CompanyProfilePage({ params }: { params: Promise<{
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <CardTitle>Need Help / Escalations</CardTitle>
+            <CardDescription>Support requests and blocked deal escalations for this company.</CardDescription>
+          </div>
+          <Button asChild variant="outline">
+            <Link href={`/need-help/new?company=${company.id}`}>
+              <Plus className="w-4 h-4 mr-2" />
+              Request Help
+            </Link>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {helpRequests.length === 0 ? (
+            <EmptyState
+              title="No help requests yet"
+              description="Surface blocked deals or request manager support for this company."
+              icon={LifeBuoy}
+            />
+          ) : (
+            <div className="space-y-3">
+              {helpRequests.map((request) => (
+                <HelpRequestCard key={request.id} helpRequest={request} />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-2">
-        <EmptyState title="Need Help" description="Escalation workflows will be added in a later sprint." icon={LifeBuoy} />
         <EmptyState title="Activity Log" description="Audit records are being captured and can be surfaced later." icon={NotebookTabs} />
       </section>
     </div>

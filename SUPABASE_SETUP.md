@@ -32,6 +32,7 @@ Run these files in order from the Supabase SQL editor or your migration workflow
 5. `supabase/migrations/005_interaction_meeting_log.sql`
 6. `supabase/migrations/006_followup_reminder_management.sql`
 7. `supabase/migrations/007_document_management.sql`
+8. `supabase/migrations/008_need_help_escalation.sql`
 
 The first migration creates:
 
@@ -214,3 +215,23 @@ After running all seven SQL files:
 8. Archive or Delete a document and confirm it's removed or hidden.
 9. Confirm `activity_logs` records document created, updated, archived, and deleted.
 10. Verify that files are correctly uploaded to the `crm-documents` bucket in a folder structure like `organization_id/file_name`.
+
+## 12. Test Help Request / Escalation Management
+
+After running all eight SQL files:
+
+1. Open `/need-help/new`.
+2. Select a company and a priority level.
+3. Enter a title and description for the help request.
+4. Optionally link the request to a meeting, follow-up, or document.
+5. Save and confirm the help request opens at `/need-help/[id]`.
+6. Confirm the status is "Open" and the request appears in the `/need-help` list.
+7. Assign the request to another user using the Assign button and confirm the status changes to "In Progress".
+8. Add a comment to the request using the comment form.
+9. Mark the request as Resolved and confirm the status changes.
+10. Reopen the request and confirm the status changes back to "Open".
+11. Test filtering at `/need-help` by status (Open, In Progress, Resolved, Closed, Rejected).
+12. Open a company profile and confirm the "Need Help / Escalations" section shows the request.
+13. Open a meeting, follow-up, or document detail page and confirm the "Create Help Request" button links to the correct pre-filled form.
+14. Check the dashboard and confirm the "Open Help Requests" stat card displays the correct count.
+15. Confirm `activity_logs` records help request created, assigned, status changes, and comments added.

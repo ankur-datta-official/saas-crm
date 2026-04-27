@@ -351,3 +351,80 @@ export type DocumentFilters = {
   dateFrom?: string;
   dateTo?: string;
 };
+
+export type HelpRequestType =
+  | "General Support"
+  | "Need Technical Support"
+  | "Need Price Approval"
+  | "Need Senior Meeting"
+  | "Need Product Demo"
+  | "Need Quotation Support"
+  | "Need Proposal Support"
+  | "Need Management Decision"
+  | "Need Site Visit"
+  | "Need Document Support"
+  | "Need Payment Follow-up"
+  | "Other";
+
+export type HelpRequestStatus = "open" | "in_progress" | "resolved" | "rejected" | "archived";
+
+export type HelpRequestPriority = "low" | "medium" | "high" | "urgent";
+
+export type HelpRequest = {
+  id: string;
+  organization_id: string;
+  company_id: string;
+  contact_person_id: string | null;
+  interaction_id: string | null;
+  followup_id: string | null;
+  document_id: string | null;
+  requested_by: string;
+  assigned_to: string | null;
+  help_type: HelpRequestType;
+  title: string;
+  description: string | null;
+  priority: HelpRequestPriority;
+  status: HelpRequestStatus;
+  resolution_note: string | null;
+  resolved_at: string | null;
+  resolved_by: string | null;
+  created_by: string;
+  updated_by: string;
+  created_at: string;
+  updated_at: string;
+  companies?: Pick<Company, "id" | "name"> | null;
+  contact_persons?: Pick<ContactPerson, "id" | "name" | "mobile" | "email"> | null;
+  interactions?: Pick<Interaction, "id" | "interaction_type" | "meeting_datetime"> | null;
+  followups?: Pick<Followup, "id" | "title" | "scheduled_at"> | null;
+  documents?: Pick<Document, "id" | "title" | "document_type"> | null;
+  requested_profile?: TeamMemberOption | null;
+  assigned_profile?: TeamMemberOption | null;
+  created_profile?: TeamMemberOption | null;
+  resolved_profile?: TeamMemberOption | null;
+};
+
+export type HelpRequestComment = {
+  id: string;
+  organization_id: string;
+  help_request_id: string;
+  user_id: string;
+  comment: string;
+  is_internal: boolean;
+  created_at: string;
+  updated_at: string;
+  user_profile?: TeamMemberOption | null;
+};
+
+export type HelpRequestFilters = {
+  search?: string;
+  company?: string;
+  contact?: string;
+  interaction?: string;
+  followup?: string;
+  document?: string;
+  helpType?: string;
+  priority?: string;
+  status?: string;
+  assignedTo?: string;
+  requestedBy?: string;
+};

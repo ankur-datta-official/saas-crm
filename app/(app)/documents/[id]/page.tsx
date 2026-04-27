@@ -1,14 +1,15 @@
 import { notFound } from "next/navigation";
-import { 
-  FileText, 
-  Calendar, 
-  User, 
-  Building2, 
-  History, 
+import {
+  FileText,
+  Calendar,
+  User,
+  Building2,
+  History,
   FileIcon,
   MessageSquare,
   Clock,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Plus
 } from "lucide-react";
 import { getDocumentById } from "@/lib/crm/document-queries";
 import { DocumentDetailHeader } from "@/components/crm/document-detail-header";
@@ -63,9 +64,17 @@ export default async function DocumentDetailPage({ params }: { params: Promise<{
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle>CRM Context</CardTitle>
-              <CardDescription>Records linked to this document.</CardDescription>
+            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <CardTitle>CRM Context</CardTitle>
+                <CardDescription>Records linked to this document.</CardDescription>
+              </div>
+              <Button asChild size="sm">
+                <Link href={`/need-help/new?company=${document.company_id}&contact=${document.contact_person_id}&document=${document.id}`}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Help Request
+                </Link>
+              </Button>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">

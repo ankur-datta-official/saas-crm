@@ -251,3 +251,60 @@ export const documentSchema = z.object({
 
 export type DocumentInput = z.infer<typeof documentSchema>;
 export type DocumentFormValues = z.input<typeof documentSchema>;
+
+export const helpRequestTypeOptions = [
+  "General Support",
+  "Need Technical Support",
+  "Need Price Approval",
+  "Need Senior Meeting",
+  "Need Product Demo",
+  "Need Quotation Support",
+  "Need Proposal Support",
+  "Need Management Decision",
+  "Need Site Visit",
+  "Need Document Support",
+  "Need Payment Follow-up",
+  "Other",
+] as const;
+
+export const helpRequestPriorityOptions = ["low", "medium", "high", "urgent"] as const;
+export const helpRequestStatusOptions = ["open", "in_progress", "resolved", "rejected", "archived"] as const;
+
+export const helpRequestSchema = z.object({
+  company_id: z.string().uuid("Company is required."),
+  title: z.string().trim().min(2, "Title is required."),
+  help_type: z.enum(helpRequestTypeOptions, { errorMap: () => ({ message: "Select a valid help type." }) }),
+  contact_person_id: optionalUuid,
+  interaction_id: optionalUuid,
+  followup_id: optionalUuid,
+  document_id: optionalUuid,
+  assigned_to: optionalUuid,
+  priority: z.enum(helpRequestPriorityOptions).default("medium"),
+  status: z.enum(helpRequestStatusOptions).default("open"),
+  description: optionalText,
+  resolution_note: optionalText,
+});
+
+export const helpRequestUpdateSchema = z.object({
+  title: z.string().trim().min(2, "Title is required.").optional(),
+  help_type: z.enum(helpRequestTypeOptions).optional(),
+  contact_person_id: optionalUuid,
+  interaction_id: optionalUuid,
+  followup_id: optionalUuid,
+  document_id: optionalUuid,
+  assigned_to: optionalUuid,
+  priority: z.enum(helpRequestPriorityOptions).optional(),
+  status: z.enum(helpRequestStatusOptions).optional(),
+  description: optionalText,
+  resolution_note: optionalText,
+});
+
+export const helpRequestCommentSchema = z.object({
+  comment: z.string().trim().min(1, "Comment is required."),
+  is_internal: z.boolean().default(true),
+});
+
+export type HelpRequestInput = z.infer<typeof helpRequestSchema>;
+export type HelpRequestFormValues = z.input<typeof helpRequestSchema>;
+export type HelpRequestUpdateInput = z.infer<typeof helpRequestUpdateSchema>;
+export type HelpRequestCommentInput = z.infer<typeof helpRequestCommentSchema>;
