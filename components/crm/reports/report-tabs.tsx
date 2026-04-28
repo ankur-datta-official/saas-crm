@@ -6,15 +6,20 @@ import { ReactNode } from "react";
 
 interface ReportTabsProps {
   currentTab: string;
+  lockedTabs?: string[];
   children: ReactNode;
 }
 
-export function ReportTabs({ currentTab, children }: ReportTabsProps) {
+export function ReportTabs({ currentTab, lockedTabs = [], children }: ReportTabsProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const handleTabChange = (value: string) => {
+    if (lockedTabs.includes(value)) {
+      return;
+    }
+
     const params = new URLSearchParams(searchParams);
     params.set("tab", value);
     router.push(`${pathname}?${params.toString()}`);
@@ -29,9 +34,9 @@ export function ReportTabs({ currentTab, children }: ReportTabsProps) {
           <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
           <TabsTrigger value="meetings">Meetings</TabsTrigger>
           <TabsTrigger value="follow-ups">Follow-ups</TabsTrigger>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-          <TabsTrigger value="help-requests">Help Requests</TabsTrigger>
-          <TabsTrigger value="team">Team Performance</TabsTrigger>
+          <TabsTrigger value="documents" disabled={lockedTabs.includes("documents")}>Documents</TabsTrigger>
+          <TabsTrigger value="help-requests" disabled={lockedTabs.includes("help-requests")}>Help Requests</TabsTrigger>
+          <TabsTrigger value="team" disabled={lockedTabs.includes("team")}>Team Performance</TabsTrigger>
         </TabsList>
       </div>
       <div className="mt-6">

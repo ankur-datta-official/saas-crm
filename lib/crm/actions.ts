@@ -14,6 +14,7 @@ import {
 } from "@/lib/crm/schemas";
 import { slugify } from "@/lib/crm/utils";
 import { createClient } from "@/lib/supabase/server";
+import { checkCompanyLimit, requireFeature } from "@/lib/subscription/subscription-queries";
 
 export type CrmActionState = {
   ok: boolean;
@@ -369,6 +370,15 @@ export async function createPipelineStageAction(values: unknown): Promise<CrmAct
 
   if (!parsed.success) return getValidationState(parsed.error);
 
+  try {
+    await requireFeature("custom_pipeline");
+  } catch (error) {
+    await insertActivityLog("subscription.feature_blocked", "organization", organization.id, {
+      feature: "custom_pipeline",
+    });
+    return { ok: false, error: error instanceof Error ? error.message : "Upgrade required to customize pipeline stages." };
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.from("pipeline_stages").insert({
     ...parsed.data,
@@ -388,6 +398,15 @@ export async function updatePipelineStageAction(id: string, values: unknown): Pr
 
   if (!parsed.success) return getValidationState(parsed.error);
 
+  try {
+    await requireFeature("custom_pipeline");
+  } catch (error) {
+    await insertActivityLog("subscription.feature_blocked", "organization", organization.id, {
+      feature: "custom_pipeline",
+    });
+    return { ok: false, error: error instanceof Error ? error.message : "Upgrade required to customize pipeline stages." };
+  }
+
   const supabase = await createClient();
   const { error } = await supabase
     .from("pipeline_stages")
@@ -404,6 +423,15 @@ export async function updatePipelineStageAction(id: string, values: unknown): Pr
 
 export async function archivePipelineStageAction(id: string): Promise<CrmActionState> {
   const organization = await requireOrganization();
+  try {
+    await requireFeature("custom_pipeline");
+  } catch (error) {
+    await insertActivityLog("subscription.feature_blocked", "organization", organization.id, {
+      feature: "custom_pipeline",
+    });
+    return { ok: false, error: error instanceof Error ? error.message : "Upgrade required to customize pipeline stages." };
+  }
+
   const supabase = await createClient();
   const { error } = await supabase
     .from("pipeline_stages")
@@ -423,6 +451,17 @@ export async function createCompanyAction(values: unknown): Promise<CrmActionSta
   const parsed = companySchema.safeParse(values);
 
   if (!parsed.success) return getValidationState(parsed.error);
+
+  const companyLimit = await checkCompanyLimit(1);
+  if (!companyLimit.allowed) {
+    await insertActivityLog("subscription.limit_reached", "organization", organization.id, {
+      limit_type: "companies",
+      current: companyLimit.current,
+      projected: companyLimit.projected,
+      max: companyLimit.max,
+    });
+    return { ok: false, error: companyLimit.message ?? "Company limit reached for the current plan." };
+  }
 
   const relationErrors = await validateCompanyRelations(organization.id, parsed.data);
   if (Object.keys(relationErrors).length > 0) {

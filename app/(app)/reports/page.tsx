@@ -12,6 +12,7 @@ import { FollowupReport } from "@/components/crm/reports/followup-report";
 import { DocumentReport } from "@/components/crm/reports/document-report";
 import { HelpRequestReport } from "@/components/crm/reports/help-request-report";
 import { TeamPerformanceReport } from "@/components/crm/reports/team-performance-report";
+import { FeatureLockCard } from "@/components/subscription/feature-lock-card";
 import {
   getIndustries,
   getCompanyCategories,
@@ -30,6 +31,7 @@ import {
   type ReportFilters
 } from "@/lib/crm/report-queries";
 import { requirePermission } from "@/lib/auth/session";
+import { getUpgradeMessage, hasFeature } from "@/lib/subscription/subscription-queries";
 
 interface ReportsPageProps {
   searchParams: Promise<{
@@ -47,6 +49,8 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
   await requirePermission("reports.view");
   const params = await searchParams;
   const currentTab = params.tab || "sales-overview";
+  const advancedReportsEnabled = await hasFeature("advanced_reports");
+  const lockedTabs = advancedReportsEnabled ? [] : ["documents", "help-requests", "team"];
 
   const filters: ReportFilters = {
     dateRange: (params.dateRange as any) || "this_month",
@@ -78,7 +82,14 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
         categories={categories}
       />
 
-      <ReportTabs currentTab={currentTab}>
+      {!advancedReportsEnabled ? (
+        <FeatureLockCard
+          featureName="Advanced Reports"
+          description={getUpgradeMessage("advanced_reports")}
+        />
+      ) : null}
+
+      <ReportTabs currentTab={currentTab} lockedTabs={lockedTabs}>
         <Suspense fallback={<div className="h-[400px] flex items-center justify-center">Loading report...</div>}>
           <TabsContent value="sales-overview">
             <SalesOverviewReportView filters={filters} />
@@ -96,13 +107,25 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
             <FollowupReportView filters={filters} />
           </TabsContent>
           <TabsContent value="documents">
-            <DocumentReportView filters={filters} />
+            {lockedTabs.includes("documents") ? (
+              <FeatureLockCard featureName="Document Reports" description={getUpgradeMessage("advanced_reports")} />
+            ) : (
+              <DocumentReportView filters={filters} />
+            )}
           </TabsContent>
           <TabsContent value="help-requests">
-            <HelpRequestReportView filters={filters} />
+            {lockedTabs.includes("help-requests") ? (
+              <FeatureLockCard featureName="Help Request Reports" description={getUpgradeMessage("advanced_reports")} />
+            ) : (
+              <HelpRequestReportView filters={filters} />
+            )}
           </TabsContent>
           <TabsContent value="team">
-            <TeamPerformanceReportView filters={filters} />
+            {lockedTabs.includes("team") ? (
+              <FeatureLockCard featureName="Team Performance Reports" description={getUpgradeMessage("advanced_reports")} />
+            ) : (
+              <TeamPerformanceReportView filters={filters} />
+            )}
           </TabsContent>
         </Suspense>
       </ReportTabs>

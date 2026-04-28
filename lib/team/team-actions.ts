@@ -10,6 +10,7 @@ import {
   requirePermission,
 } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { checkUserLimit } from "@/lib/subscription/subscription-queries";
 import { getPermissions, getRoleById, getRoles } from "./team-queries";
 
 type InviteTeamMemberInput = {
@@ -79,9 +80,20 @@ export async function inviteTeamMember(input: InviteTeamMemberInput) {
   const user = await requireAuth();
   const supabase = await createClient();
   const email = normalizeEmail(input.email);
+  const userLimit = await checkUserLimit(1);
 
   if (!email) {
     throw new Error("Email is required.");
+  }
+
+  if (!userLimit.allowed) {
+    await logActivity(organization.id, "subscription.limit_reached", "organization", organization.id, {
+      limit_type: "users",
+      current: userLimit.current,
+      projected: userLimit.projected,
+      max: userLimit.max,
+    });
+    throw new Error(userLimit.message ?? "Your current plan has no room for more team members.");
   }
 
   await getRoleOrThrow(input.roleId, organization.id);

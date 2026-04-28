@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireOrganization } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { documentSchema, type DocumentInput } from "@/lib/crm/schemas";
+import { checkFileSizeLimit, checkStorageLimit } from "@/lib/subscription/subscription-queries";
+import { documentSchema } from "@/lib/crm/schemas";
 
 async function insertActivityLog(action: string, entityType: string, entityId: string, metadata: Record<string, any> = {}) {
   const user = await requireAuth();
@@ -33,7 +34,7 @@ async function validateDocumentOwnership(documentId: string) {
 
   const { data: document, error } = await supabase
     .from("documents")
-    .select("id, organization_id, company_id, file_path")
+    .select("id, organization_id, company_id, file_path, file_size_mb")
     .eq("id", documentId)
     .eq("organization_id", organization.id)
     .single();
@@ -52,6 +53,27 @@ export async function createDocument(formData: FormData): Promise<DocumentAction
 
   const file = formData.get("file") as File;
   if (!file) return { ok: false, error: "File is required." };
+
+  const fileSizeLimit = await checkFileSizeLimit(file.size);
+  if (!fileSizeLimit.allowed) {
+    await insertActivityLog("subscription.limit_reached", "organization", organization.id, {
+      limit_type: "file_size",
+      projected: fileSizeLimit.projected,
+      max: fileSizeLimit.max,
+    });
+    return { ok: false, error: fileSizeLimit.message ?? "The selected file is too large for your current plan." };
+  }
+
+  const storageLimit = await checkStorageLimit(file.size / (1024 * 1024));
+  if (!storageLimit.allowed) {
+    await insertActivityLog("subscription.limit_reached", "organization", organization.id, {
+      limit_type: "storage",
+      current: storageLimit.current,
+      projected: storageLimit.projected,
+      max: storageLimit.max,
+    });
+    return { ok: false, error: storageLimit.message ?? "Document storage limit reached for your current plan." };
+  }
 
   const rawValues = Object.fromEntries(formData.entries());
   const validated = documentSchema.safeParse(rawValues);
@@ -131,6 +153,27 @@ export async function updateDocument(documentId: string, formData: FormData): Pr
   let fileMetadata = {};
 
   if (file && file.size > 0) {
+    const fileSizeLimit = await checkFileSizeLimit(file.size);
+    if (!fileSizeLimit.allowed) {
+      await insertActivityLog("subscription.limit_reached", "organization", organization.id, {
+        limit_type: "file_size",
+        projected: fileSizeLimit.projected,
+        max: fileSizeLimit.max,
+      });
+      return { ok: false, error: fileSizeLimit.message ?? "The selected file is too large for your current plan." };
+    }
+
+    const storageLimit = await checkStorageLimit(file.size / (1024 * 1024), Number(document.file_size_mb ?? 0));
+    if (!storageLimit.allowed) {
+      await insertActivityLog("subscription.limit_reached", "organization", organization.id, {
+        limit_type: "storage",
+        current: storageLimit.current,
+        projected: storageLimit.projected,
+        max: storageLimit.max,
+      });
+      return { ok: false, error: storageLimit.message ?? "Document storage limit reached for your current plan." };
+    }
+
     // New file uploaded - replace the old one
     const newFilePath = `${organization.id}/${validated.data.company_id}/${documentId}/${file.name}`;
     

@@ -34,6 +34,7 @@ Run these files in order from the Supabase SQL editor or your migration workflow
 7. `supabase/migrations/007_document_management.sql`
 8. `supabase/migrations/008_need_help_escalation.sql`
 9. `supabase/migrations/009_team_role_permission_management.sql`
+10. `supabase/migrations/010_subscription_plan_limits.sql`
 
 The first migration creates:
 
@@ -315,3 +316,35 @@ Manual testing steps for Sprint 10:
 21. Accept an invite at `/auth/accept-invite?token=...` using a user that is not already in another organization.
 22. Check `activity_logs` for invite, cancel, resend, accept, role, deactivate, reactivate, and permission update entries.
 23. Run `npm run build`.
+
+## 14. Sprint 11 Subscription Plans, Limits, and Packaging
+
+Run migration 010 after the earlier core and CRM migrations. It adds:
+
+- functional plan packaging fields on `subscription_plans`
+- seeded Starter, Professional, Business, and Enterprise packaging
+- safe admin update access for `organization_subscriptions` so manual plan switching can be tested
+
+Implementation notes:
+
+- Payment gateway and automated billing are not implemented in this sprint.
+- Organization admins with `subscription.manage` can switch plans manually from `/subscription` for testing.
+- Team invites, company creation, document upload limits, custom pipeline controls, and advanced report access are enforced server-side.
+- CSV import and PDF export packaging is prepared, but full billing-backed checkout flow is intentionally deferred.
+
+Manual testing steps for Sprint 11:
+
+1. Run `supabase/migrations/010_subscription_plan_limits.sql`.
+2. Open `/subscription`.
+3. Confirm the current plan, subscription status, and usage cards load.
+4. Verify the current plan shows user, company, storage, and file-size limits.
+5. Test the team invite limit by filling available seats with active users and pending invites.
+6. Test the company limit by creating companies until the plan cap is reached.
+7. Test document upload with a file larger than the plan file-size limit.
+8. Test document upload when total document storage would exceed the plan storage limit.
+9. Open `/settings/pipeline` on a plan without `custom_pipeline` and confirm editing is blocked with an upgrade prompt.
+10. Open `/reports` on a plan without `advanced_reports` and confirm advanced tabs are locked.
+11. If you have `subscription.manage`, switch plans manually from `/subscription`.
+12. Re-test user, company, storage, and feature access after the plan switch.
+13. Check `activity_logs` for `subscription.plan_changed`, `subscription.limit_reached`, and `subscription.feature_blocked` entries.
+14. Run `npm run build`.

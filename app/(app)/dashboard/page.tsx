@@ -16,14 +16,17 @@ import { getOpenHelpRequestsCount } from "@/lib/crm/help-request-queries";
 import { formatCurrency } from "@/lib/crm/utils";
 import { requireOrganization } from "@/lib/auth/session";
 import { getActiveUsersCount, getPendingInvitationsCount } from "@/lib/team/team-queries";
+import { getCurrentPlan, getOrganizationUsage } from "@/lib/subscription/subscription-queries";
 
 export default async function DashboardPage() {
   const organization = await requireOrganization();
-  const [metrics, openHelpRequestsCount, activeUsersCount, pendingInvitationsCount] = await Promise.all([
+  const [metrics, openHelpRequestsCount, activeUsersCount, pendingInvitationsCount, currentPlan, usage] = await Promise.all([
     getDashboardMetrics(),
     getOpenHelpRequestsCount(),
     getActiveUsersCount(),
     getPendingInvitationsCount(),
+    getCurrentPlan(),
+    getOrganizationUsage(),
   ]);
   const stats = [
     { title: "Total Leads", value: String(metrics.totalCompanies), description: "All active company lead records", icon: Users, tone: "teal", href: "/reports?tab=leads" },
@@ -71,6 +74,45 @@ export default async function DashboardPage() {
                 <StatusBadge status={status} />
               </div>
             ))}
+          </CardContent>
+        </Card>
+      </section>
+      <section className="mt-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Plan Usage</CardTitle>
+            <CardDescription>
+              {currentPlan ? `${currentPlan.name} plan usage snapshot.` : "Subscription details are not available."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-3">
+            <div className="rounded-md border p-4">
+              <p className="text-sm text-muted-foreground">Users</p>
+              <p className="mt-2 text-2xl font-semibold">
+                {usage.reservedSeats}
+                <span className="ml-1 text-sm font-normal text-muted-foreground">
+                  / {currentPlan?.max_users ?? "Unlimited"}
+                </span>
+              </p>
+            </div>
+            <div className="rounded-md border p-4">
+              <p className="text-sm text-muted-foreground">Companies</p>
+              <p className="mt-2 text-2xl font-semibold">
+                {usage.companies}
+                <span className="ml-1 text-sm font-normal text-muted-foreground">
+                  / {currentPlan?.max_companies ?? "Unlimited"}
+                </span>
+              </p>
+            </div>
+            <div className="rounded-md border p-4">
+              <p className="text-sm text-muted-foreground">Storage</p>
+              <p className="mt-2 text-2xl font-semibold">
+                {usage.storageUsedMb.toFixed(2)} MB
+                <span className="ml-1 text-sm font-normal text-muted-foreground">
+                  / {currentPlan?.storage_limit_mb ?? "Unlimited"}
+                </span>
+              </p>
+            </div>
           </CardContent>
         </Card>
       </section>
