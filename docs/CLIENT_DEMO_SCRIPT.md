@@ -26,42 +26,50 @@ Use this script for a clean client-facing walkthrough of the CRM.
 3. Create a sample company lead.
 4. Show filters, status, stage, and assigned owner.
 
-## 4. Add contact
+## 4. Show pipeline board
+
+1. Open `/pipeline`.
+2. Point out the live Kanban stages, deal counts, and pipeline value by stage.
+3. Drag the new company from an early stage to a later stage such as `Proposal Sent`.
+4. Open the deal card actions and show quick links for company profile, meeting, and follow-up creation.
+5. Mention that the board uses the same tenant-safe company and stage data as the rest of the CRM.
+
+## 5. Add contact
 
 1. Go to `/contacts`.
 2. Click `Add Contact`.
 3. Link the contact to the new company.
 4. Mention primary contacts and relationship tracking.
 
-## 5. Add meeting
+## 6. Add meeting
 
 1. Go to `/meetings`.
 2. Click `Add Meeting`.
 3. Record discussion notes, success rating, and next action.
 4. Show that meeting history stays linked to the company.
 
-## 6. Create follow-up
+## 7. Create follow-up
 
 1. Go to `/followups`.
 2. Click `Add Follow-up`.
 3. Schedule a follow-up with priority and assignee.
 4. Mention overdue, pending, and completed follow-up tracking.
 
-## 7. Upload document
+## 8. Upload document
 
 1. Go to `/documents`.
 2. Click `Upload Document`.
 3. Attach a small sample file.
 4. Show document metadata, download support, and storage-aware limits.
 
-## 8. Create Need Help request
+## 9. Create Need Help request
 
 1. Go to `/need-help`.
 2. Click `New Help Request`.
 3. Create a request tied to the company or follow-up.
 4. Show assignment and resolution workflow.
 
-## 9. View reports
+## 10. View reports
 
 1. Open `/reports`.
 2. Walk through:
@@ -72,7 +80,7 @@ Use this script for a clean client-facing walkthrough of the CRM.
    - help requests
 3. Mention permission and subscription-based access where relevant.
 
-## 10. Show team and roles
+## 11. Show team and roles
 
 1. Open `/team`.
 2. Show:
@@ -81,7 +89,7 @@ Use this script for a clean client-facing walkthrough of the CRM.
    - roles and permissions
 3. Mention invite links, role management, and deactivation/reactivation.
 
-## 11. Show subscription plan limits
+## 12. Show subscription plan limits
 
 1. Open `/subscription`.
 2. Highlight:
@@ -92,7 +100,7 @@ Use this script for a clean client-facing walkthrough of the CRM.
    - feature availability
 3. Mention that payment automation is intentionally out of scope in the current release.
 
-## 12. Show global search
+## 13. Show global search
 
 1. Use the topbar search.
 2. Search for:
@@ -101,17 +109,18 @@ Use this script for a clean client-facing walkthrough of the CRM.
    - meeting text
 3. Open a result and show cross-module discoverability.
 
-## 13. Show notifications
+## 14. Show notifications
 
 1. Open the notification bell.
 2. Show unread count.
 3. Click a notification and explain action-driven alerts.
 4. Mention mark-as-read and mark-all-as-read.
 
-## 14. Close the demo
+## 15. Close the demo
 
 1. Summarize the main workflow:
    - capture leads
+   - move deals across the pipeline board
    - manage contacts
    - log meetings
    - track follow-ups

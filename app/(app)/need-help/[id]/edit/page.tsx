@@ -26,7 +26,7 @@ export default async function EditHelpRequestPage({ params }: { params: Promise<
     <div className="container py-6">
       <PageHeader
         title="Edit Help Request"
-        description="Update the details or status of this help request."
+        description="Update the request details, ownership, or resolution status without losing the original context."
       />
       <div className="mt-6 max-w-5xl">
         <Suspense fallback={<LoadingSkeleton />}>

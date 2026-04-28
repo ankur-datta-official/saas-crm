@@ -19,8 +19,8 @@ export default async function NewFollowupPage({
   return (
     <div className="container py-6">
       <PageHeader
-        title="New Follow-up"
-        description="Schedule a follow-up action for a client or lead."
+        title="Create Follow-up"
+        description="Capture the next client action now, then add reminders or related CRM context only if needed."
       />
       <div className="mt-6 max-w-5xl">
         <Suspense fallback={<LoadingSkeleton />}>

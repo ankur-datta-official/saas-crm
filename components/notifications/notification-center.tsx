@@ -84,7 +84,7 @@ export function NotificationCenter({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon" className="relative">
+        <Button variant="outline" size="icon" className="relative" aria-label="Open notifications">
           <Bell />
           {unreadCount > 0 ? (
             <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
@@ -94,10 +94,10 @@ export function NotificationCenter({
           <span className="sr-only">Notifications</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[min(22rem,calc(100vw-2rem))] p-0">
+      <DropdownMenuContent align="end" sideOffset={10} className="w-[min(22rem,calc(100vw-1rem))] p-0">
         <div className="flex items-center justify-between px-3 py-3">
           <DropdownMenuLabel className="p-0">Notifications</DropdownMenuLabel>
-          <Button type="button" variant="ghost" size="sm" className="h-auto px-0 text-xs" disabled={isPending || unreadCount === 0} onClick={handleMarkAllAsRead}>
+          <Button type="button" variant="ghost" size="sm" className="h-auto px-2 text-xs" disabled={isPending || unreadCount === 0} onClick={handleMarkAllAsRead}>
             Mark all as read
           </Button>
         </div>
@@ -107,7 +107,7 @@ export function NotificationCenter({
         ) : (
           <div className="max-h-[26rem] overflow-y-auto p-2">
             {notifications.map((notification) => (
-              <DropdownMenuItem key={notification.id} asChild className={cn("block cursor-pointer rounded-lg px-3 py-3", !notification.is_read && "bg-primary/5")}>
+              <DropdownMenuItem key={notification.id} asChild className={cn("block cursor-pointer rounded-xl px-3 py-3", !notification.is_read && "bg-primary/5")}>
                 <Link href={notification.link ?? "#"} onClick={() => handleNotificationClick(notification)}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FormActionBar, FormContextHint, FormRequiredNote } from "@/components/shared/form-helpers";
 import { createHelpRequest, updateHelpRequest } from "@/lib/crm/help-request-actions";
 import { helpRequestSchema, helpRequestTypeOptions, helpRequestPriorityOptions, helpRequestStatusOptions } from "@/lib/crm/schemas";
 import type { Company, ContactPerson, Interaction, Followup, Document, HelpRequest, TeamMemberOption } from "@/lib/crm/types";
@@ -123,9 +124,10 @@ export function HelpRequestForm({
 
   return (
     <form className="space-y-5" onSubmit={form.handleSubmit((values) => onSubmit(values, "save"))}>
-      <p className="rounded-md border bg-white p-3 text-sm text-muted-foreground">
-        Only company, help type, and title are required. You can add more details later.
-      </p>
+      <FormRequiredNote message="Company, help type, and title are required. Use the optional sections when you need to link the request to other CRM records or assign internal ownership." />
+      {(defaultCompanyId || defaultContactId || defaultInteractionId || defaultFollowupId || defaultDocumentId) && !helpRequest ? (
+        <FormContextHint message="This request was opened from an existing CRM record, so related context has been preselected where possible." />
+      ) : null}
 
       <FormSection title="Basic Information" description="Core help request context.">
         <SelectField
@@ -233,7 +235,7 @@ export function HelpRequestForm({
           <textarea
             id="description"
             {...form.register("description")}
-            className="min-h-32 w-full rounded-md border bg-background px-3 py-2 text-sm"
+            className="min-h-32 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm"
             placeholder="Describe the issue or what kind of help is needed."
           />
         </div>
@@ -244,7 +246,7 @@ export function HelpRequestForm({
             <textarea
               id="resolution_note"
               {...form.register("resolution_note")}
-              className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm"
+              className="min-h-24 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm"
               placeholder="Add notes about how this was resolved or why it was rejected."
             />
           </div>
@@ -254,7 +256,10 @@ export function HelpRequestForm({
       {serverError && <p className="rounded-md bg-rose-50 p-3 text-sm text-rose-700">{serverError}</p>}
       {successMessage && <p className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">{successMessage}</p>}
 
-      <div className="flex flex-wrap gap-2">
+      <FormActionBar>
+        <Button asChild variant="outline">
+          <Link href={helpRequest ? `/need-help/${helpRequest.id}` : "/need-help"}>Cancel</Link>
+        </Button>
         <Button type="submit" disabled={isPending}>
           <Save className="mr-2 h-4 w-4" />
           {helpRequest ? "Update" : "Save"}
@@ -269,10 +274,7 @@ export function HelpRequestForm({
             Save & Add Another
           </Button>
         )}
-        <Button asChild variant="outline">
-          <Link href={helpRequest ? `/need-help/${helpRequest.id}` : "/need-help"}>Cancel</Link>
-        </Button>
-      </div>
+      </FormActionBar>
     </form>
   );
 }
@@ -301,10 +303,17 @@ function CollapsibleSection({
   columns?: string;
 }) {
   return (
-    <details className="rounded-lg border bg-card shadow-soft" open={false}>
+    <details className="rounded-xl border bg-card shadow-soft" open={false}>
       <summary className="cursor-pointer list-none p-5">
-        <h3 className="font-semibold">{title}</h3>
-        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="font-semibold">{title}</h3>
+            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+          </div>
+          <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
+            Optional
+          </span>
+        </div>
       </summary>
       <div className={`grid gap-4 p-5 pt-0 ${columns}`}>{children}</div>
     </details>
@@ -337,7 +346,7 @@ function SelectField({
         {label}
         {required && <span className="text-destructive"> *</span>}
       </Label>
-      <select {...props} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
+      <select {...props} className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm shadow-sm">
         {children}
       </select>
       {error && <p className="text-xs text-destructive">{error}</p>}

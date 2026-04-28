@@ -1,5 +1,6 @@
 import { Mail, Shield, Users } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
+import { GuidanceStrip } from "@/components/shared/guidance-strip";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InvitationTable } from "@/components/team/invitation-table";
@@ -40,6 +41,9 @@ export default async function TeamPage() {
         description="Manage organization members, invitation links, roles, and CRM access permissions."
         actions={canInvite ? <InviteUserForm roles={roles} /> : undefined}
       />
+      <GuidanceStrip>
+        Invitation links can be copied and shared manually when an email provider is not connected yet.
+      </GuidanceStrip>
 
       <Tabs defaultValue="members" className="space-y-4">
         <TabsList className="grid w-full grid-cols-3 md:w-auto">

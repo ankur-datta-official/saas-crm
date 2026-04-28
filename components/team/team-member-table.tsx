@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Search, User } from "lucide-react";
+import { MoreHorizontal, Search, User } from "lucide-react";
 import { ConfirmModal } from "@/components/shared/confirm-modal";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
@@ -109,7 +109,7 @@ export function TeamMemberTable({
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 rounded-lg border bg-white p-4 md:grid-cols-3">
+      <div className="crm-filter-surface grid gap-3 md:grid-cols-3">
         <div className="relative md:col-span-2">
           <Search className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -121,7 +121,7 @@ export function TeamMemberTable({
         </div>
         <div className="flex gap-3">
           <select
-            className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+            className="crm-filter-select"
             value={roleFilter}
             onChange={(event) => setRoleFilter(event.target.value)}
           >
@@ -133,7 +133,7 @@ export function TeamMemberTable({
             ))}
           </select>
           <select
-            className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+            className="crm-filter-select"
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
           >
@@ -166,7 +166,7 @@ export function TeamMemberTable({
               />
             ))}
           </div>
-          <div className="hidden overflow-hidden rounded-lg border bg-white md:block">
+          <div className="crm-table-shell hidden md:block">
             <div className="overflow-x-auto">
             <Table>
               <TableHeader className="bg-muted/40">
@@ -187,24 +187,25 @@ export function TeamMemberTable({
 
                   return (
                     <TableRow key={member.id}>
-                      <TableCell>
-                        <div className="font-medium">
+                      <TableCell className="max-w-[180px]">
+                        <div className="truncate font-medium">
                           {getDisplayName(member.full_name, member.email)}
                           {member.id === currentUserId ? <span className="ml-2 text-xs text-muted-foreground">(You)</span> : null}
                         </div>
                       </TableCell>
-                      <TableCell>{member.email}</TableCell>
+                      <TableCell className="max-w-[220px] truncate">{member.email}</TableCell>
                       <TableCell><RoleBadge name={member.role_name ?? "Unassigned"} /></TableCell>
-                      <TableCell>{member.job_title ?? "-"}</TableCell>
-                      <TableCell>{member.department ?? "-"}</TableCell>
+                      <TableCell className="max-w-[160px] truncate">{member.job_title ?? "-"}</TableCell>
+                      <TableCell className="max-w-[160px] truncate">{member.department ?? "-"}</TableCell>
                       <TableCell><UserStatusBadge active={member.is_active} /></TableCell>
-                      <TableCell>{member.last_login_at ? new Date(member.last_login_at).toLocaleString() : "Never recorded"}</TableCell>
+                      <TableCell className="max-w-[180px] truncate">{member.last_login_at ? new Date(member.last_login_at).toLocaleString() : "Never recorded"}</TableCell>
                       <TableCell className="text-right">
                         {(canUpdateRole || canDeactivate) && member.id !== currentUserId ? (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="outline" size="sm" disabled={isPending}>
-                                Manage
+                              <Button variant="ghost" size="icon" disabled={isPending}>
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Manage member</span>
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-56">

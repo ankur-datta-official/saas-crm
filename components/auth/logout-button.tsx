@@ -16,7 +16,7 @@ export function LogoutButton() {
   }
 
   return (
-    <Button variant="outline" size="icon" onClick={handleLogout}>
+    <Button variant="outline" size="icon" onClick={handleLogout} aria-label="Sign out">
       <LogOut />
       <span className="sr-only">Sign out</span>
     </Button>

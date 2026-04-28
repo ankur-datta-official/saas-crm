@@ -5,12 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 import { 
   Edit, 
-  Eye, 
   FileDown, 
   Search, 
   Archive, 
-  ExternalLink, 
-  MoreVertical,
+  MoreHorizontal,
   Calendar,
   User,
   Building2,
@@ -66,7 +64,6 @@ export function DocumentTable({ documents, companies, teamMembers }: DocumentTab
 
   return (
     <div className="space-y-4">
-      {/* Filters */}
       <Card className="p-4">
         <form action={applyFilters} className="grid gap-3 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
           <div className="relative md:col-span-2">
@@ -75,7 +72,7 @@ export function DocumentTable({ documents, companies, teamMembers }: DocumentTab
               name="search"
               placeholder="Search title, file, remarks..."
               defaultValue={searchParams.get("search") ?? ""}
-              className="h-10 w-full rounded-md border bg-background pl-9 pr-3 text-sm"
+              className="crm-filter-input pl-9"
             />
           </div>
           
@@ -92,20 +89,25 @@ export function DocumentTable({ documents, companies, teamMembers }: DocumentTab
             options={documentTypeOptions.map((t) => [t, t])} 
             label="Document Type" 
           />
-          
-          <SelectLike 
-            name="status" 
-            defaultValue={searchParams.get("status") ?? ""} 
-            options={documentStatusOptions.map((s) => [s, s.charAt(0).toUpperCase() + s.slice(1)])} 
-            label="Status" 
-          />
-          
-          <SelectLike 
-            name="uploadedBy" 
-            defaultValue={searchParams.get("uploadedBy") ?? ""} 
-            options={teamMembers.map((m) => [m.id, m.full_name ?? m.email])} 
-            label="Uploaded By" 
-          />
+          <details className="md:col-span-2 lg:col-span-2 xl:col-span-2">
+            <summary className="crm-filter-summary">
+              More filters
+            </summary>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <SelectLike 
+                name="status" 
+                defaultValue={searchParams.get("status") ?? ""} 
+                options={documentStatusOptions.map((s) => [s, s.charAt(0).toUpperCase() + s.slice(1)])} 
+                label="Status" 
+              />
+              <SelectLike 
+                name="uploadedBy" 
+                defaultValue={searchParams.get("uploadedBy") ?? ""} 
+                options={teamMembers.map((m) => [m.id, m.full_name ?? m.email])} 
+                label="Uploaded By" 
+              />
+            </div>
+          </details>
 
           <div className="flex gap-2">
             <Button type="submit" className="flex-1">
@@ -124,12 +126,11 @@ export function DocumentTable({ documents, companies, teamMembers }: DocumentTab
         </form>
       </Card>
 
-      {/* List View (Mobile) */}
       <div className="space-y-3 md:hidden">
         {documents.length === 0 ? (
           <EmptyState
             title="No documents found"
-            description="Try adjusting your filters or upload a new document."
+            description="No documents uploaded. Upload quotations, proposals, or company profiles."
             icon={FileText}
             actionLabel="Upload Document"
             actionHref="/documents/new"
@@ -141,26 +142,25 @@ export function DocumentTable({ documents, companies, teamMembers }: DocumentTab
         )}
       </div>
 
-      {/* Table View (Desktop) */}
       {documents.length > 0 ? (
-        <div className="hidden md:block overflow-hidden rounded-lg border bg-white">
+        <div className="crm-table-shell hidden md:block">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b bg-muted/50 text-xs uppercase text-muted-foreground">
+            <table className="crm-table min-w-[860px] table-fixed">
+              <thead className="crm-table-head">
                 <tr>
-                  <th className="px-4 py-3 font-medium">Document Title</th>
-                  <th className="px-4 py-3 font-medium">Company</th>
-                  <th className="px-4 py-3 font-medium">Type</th>
-                  <th className="px-4 py-3 font-medium">File Info</th>
-                  <th className="px-4 py-3 font-medium text-center">Status</th>
-                  <th className="px-4 py-3 font-medium">Uploaded</th>
-                  <th className="px-4 py-3 font-medium text-right">Actions</th>
+                  <th className="w-[24%] px-4 py-3 font-medium">Document Title</th>
+                  <th className="w-[16%] px-4 py-3 font-medium">Company</th>
+                  <th className="w-[13%] px-4 py-3 font-medium">Type</th>
+                  <th className="w-[15%] px-4 py-3 font-medium">File Info</th>
+                  <th className="w-[12%] px-4 py-3 font-medium text-center">Status</th>
+                  <th className="w-[12%] px-4 py-3 font-medium">Uploaded</th>
+                  <th className="w-[8%] px-4 py-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {documents.map((doc) => (
-                  <tr key={doc.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-3">
+                  <tr key={doc.id} className="border-b border-border/80 last:border-0 transition-colors hover:bg-slate-50/80">
+                    <td className="crm-table-cell">
                       <div className="flex flex-col">
                         <Link href={`/documents/${doc.id}`} className="font-medium text-primary hover:underline">
                           {doc.title}
@@ -172,15 +172,15 @@ export function DocumentTable({ documents, companies, teamMembers }: DocumentTab
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="crm-table-cell">
                       <Link href={`/companies/${doc.company_id}`} className="text-muted-foreground hover:text-primary transition-colors">
                         {doc.companies?.name ?? "N/A"}
                       </Link>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="crm-table-cell">
                       <DocumentTypeBadge type={doc.document_type} />
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="crm-table-cell">
                       <div className="flex flex-col gap-1">
                         <span className="text-xs truncate max-w-[150px]" title={doc.file_name}>
                           {doc.file_name}
@@ -188,10 +188,10 @@ export function DocumentTable({ documents, companies, teamMembers }: DocumentTab
                         <FileSizeBadge sizeMb={doc.file_size_mb} />
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="crm-table-cell text-center">
                       <DocumentStatusBadge status={doc.status} />
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="crm-table-cell">
                       <div className="flex flex-col text-xs">
                         <span className="font-medium">{doc.uploaded_profile?.full_name || "Unknown"}</span>
                         <span className="text-muted-foreground">
@@ -199,35 +199,20 @@ export function DocumentTable({ documents, companies, teamMembers }: DocumentTab
                         </span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDownload(doc)}
-                          title="Download"
-                        >
-                          <FileDown className="w-4 h-4" />
+                    <td className="crm-table-cell text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button asChild variant="outline" size="sm">
+                          <Link href={`/documents/${doc.id}`}>Open</Link>
                         </Button>
-                        <Button asChild variant="ghost" size="icon" title="Edit">
-                          <Link href={`/documents/${doc.id}/edit`}>
-                            <Edit className="w-4 h-4" />
-                          </Link>
-                        </Button>
-                        
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon">
-                              <MoreVertical className="w-4 h-4" />
+                              <MoreHorizontal className="w-4 h-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <Link href={`/documents/${doc.id}`}>
-                                <Eye className="w-4 h-4 mr-2" />
-                                View Details
-                              </Link>
-                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDownload(doc)}><FileDown className="w-4 h-4 mr-2" />Download</DropdownMenuItem>
+                            <DropdownMenuItem asChild><Link href={`/documents/${doc.id}/edit`}><Edit className="w-4 h-4 mr-2" />Edit</Link></DropdownMenuItem>
                             <DropdownMenuItem 
                               className="text-destructive"
                               onClick={() => setArchiveId(doc.id)}
@@ -249,7 +234,7 @@ export function DocumentTable({ documents, companies, teamMembers }: DocumentTab
         <div className="hidden md:block">
            <EmptyState
             title="No documents found"
-            description="Try adjusting your filters or upload a new document."
+            description="No documents uploaded. Upload quotations, proposals, or company profiles."
             icon={FileText}
             actionLabel="Upload Document"
             actionHref="/documents/new"
@@ -287,7 +272,7 @@ function DocumentCard({
   onArchive: (id: string) => void;
 }) {
   return (
-    <div className="rounded-lg border bg-white p-4 space-y-3 shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3 shadow-soft">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <Link href={`/documents/${document.id}`} className="font-semibold text-primary truncate block">
@@ -317,29 +302,23 @@ function DocumentCard({
         </div>
       </div>
 
-      <div className="flex gap-2 pt-1">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="flex-1" 
-          onClick={() => onDownload(document)}
-        >
-          <FileDown className="w-3.5 h-3.5 mr-1.5" />
-          Download
+      <div className="flex items-center gap-2 pt-1">
+        <Button asChild variant="outline" size="sm" className="flex-1">
+          <Link href={`/documents/${document.id}`}>Open</Link>
         </Button>
-        <Button asChild variant="outline" size="sm" className="px-2">
-          <Link href={`/documents/${document.id}/edit`}>
-            <Edit className="w-3.5 h-3.5" />
-          </Link>
-        </Button>
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
-          onClick={() => onArchive(document.id)}
-        >
-          <Archive className="w-3.5 h-3.5" />
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <MoreHorizontal className="w-4 h-4" />
+              <span className="sr-only">More actions</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => onDownload(document)}><FileDown className="w-4 h-4 mr-2" />Download</DropdownMenuItem>
+            <DropdownMenuItem asChild><Link href={`/documents/${document.id}/edit`}><Edit className="w-4 h-4 mr-2" />Edit</Link></DropdownMenuItem>
+            <DropdownMenuItem className="text-destructive" onClick={() => onArchive(document.id)}><Archive className="w-4 h-4 mr-2" />Archive</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );
@@ -351,7 +330,7 @@ function SelectLike({
   ...props
 }: React.SelectHTMLAttributes<HTMLSelectElement> & { label: string; options: string[][] }) {
   return (
-    <select {...props} className="h-10 rounded-md border bg-background px-3 text-sm">
+    <select {...props} className="crm-filter-select">
       <option value="">{label}</option>
       {options.map(([value, name]) => <option key={value} value={value}>{name}</option>)}
     </select>
@@ -359,5 +338,5 @@ function SelectLike({
 }
 
 function Card({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("rounded-lg border bg-white shadow-sm", className)}>{children}</div>;
+  return <div className={cn("crm-filter-surface", className)}>{children}</div>;
 }

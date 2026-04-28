@@ -73,7 +73,7 @@ export function GlobalSearchInput() {
 
   return (
     <div ref={containerRef} className="relative hidden w-full max-w-2xl md:block">
-      <div className="flex w-full items-center gap-2 rounded-xl border bg-white px-3 shadow-sm">
+      <div className="flex w-full items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 shadow-sm transition-all duration-200 focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-ring/15">
         <Search className="size-4 text-muted-foreground" />
         <Input
           value={query}
@@ -97,6 +97,7 @@ export function GlobalSearchInput() {
               handleSubmit();
             }
           }}
+          aria-label="Search CRM records"
           className="h-10 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
           placeholder="Search companies, contacts, meetings, follow-ups..."
         />

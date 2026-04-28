@@ -12,9 +12,21 @@ import type {
   Interaction,
   InteractionFilters,
   Industry,
+  PipelineBoardCompany,
+  PipelineBoardData,
+  PipelineBoardSummary,
   PipelineStage,
   TeamMemberOption,
 } from "@/lib/crm/types";
+
+const companySelect = `
+  *,
+  industries(id, name),
+  company_categories(id, name, code),
+  pipeline_stages(id, name, color, probability, is_won, is_lost),
+  assigned_profile:profiles!companies_assigned_user_id_fkey(id, full_name, email),
+  primary_contact:contact_persons!contact_persons_company_id_fkey(id, name, mobile, email, designation)
+`;
 
 export async function getIndustries(includeArchived = false) {
   const organization = await requireOrganization();
@@ -105,16 +117,7 @@ export async function getCompanies(filters: CompanyFilters = {}) {
   const supabase = await createClient();
   let query = supabase
     .from("companies")
-    .select(
-      `
-      *,
-      industries(id, name),
-      company_categories(id, name, code),
-      pipeline_stages(id, name, color, probability),
-      assigned_profile:profiles!companies_assigned_user_id_fkey(id, full_name, email),
-      primary_contact:contact_persons!contact_persons_company_id_fkey(id, name, mobile, email, designation)
-    `,
-    )
+    .select(companySelect)
     .eq("organization_id", organization.id)
     .neq("status", "archived")
     .order("updated_at", { ascending: false });
@@ -162,16 +165,7 @@ export async function getCompanyById(id: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("companies")
-    .select(
-      `
-      *,
-      industries(id, name),
-      company_categories(id, name, code),
-      pipeline_stages(id, name, color, probability),
-      assigned_profile:profiles!companies_assigned_user_id_fkey(id, full_name, email),
-      primary_contact:contact_persons!contact_persons_company_id_fkey(id, name, mobile, email, designation)
-    `,
-    )
+    .select(companySelect)
     .eq("id", id)
     .eq("organization_id", organization.id)
     .maybeSingle();
@@ -499,5 +493,182 @@ export async function getDashboardMetrics() {
     todaysFollowups: todayFollowupResult.count ?? 0,
     missedFollowups: missedFollowupResult.count ?? 0,
     pipelineValue,
+  };
+}
+
+export async function getDashboardSetupCounts() {
+  const organization = await requireOrganization();
+  const supabase = await createClient();
+
+  const [companiesResult, contactsResult, meetingsResult, followupsResult] = await Promise.all([
+    supabase
+      .from("companies")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", organization.id)
+      .neq("status", "archived"),
+    supabase
+      .from("contact_persons")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", organization.id)
+      .neq("status", "archived"),
+    supabase
+      .from("interactions")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", organization.id)
+      .neq("status", "archived"),
+    supabase
+      .from("followups")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", organization.id)
+      .neq("status", "archived"),
+  ]);
+
+  if (companiesResult.error) throw new Error(companiesResult.error.message);
+  if (contactsResult.error) throw new Error(contactsResult.error.message);
+  if (meetingsResult.error) throw new Error(meetingsResult.error.message);
+  if (followupsResult.error) throw new Error(followupsResult.error.message);
+
+  return {
+    companies: companiesResult.count ?? 0,
+    contacts: contactsResult.count ?? 0,
+    meetings: meetingsResult.count ?? 0,
+    followups: followupsResult.count ?? 0,
+  };
+}
+
+export async function getPipelineStagesForBoard() {
+  return getPipelineStages();
+}
+
+export async function getPipelineCompanies(): Promise<PipelineBoardCompany[]> {
+  const organization = await requireOrganization();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("companies")
+    .select(companySelect)
+    .eq("organization_id", organization.id)
+    .neq("status", "archived")
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const companies = await attachPrimaryContacts((data ?? []) as Company[]);
+  if (companies.length === 0) {
+    return [];
+  }
+
+  const companyIds = companies.map((company) => company.id);
+  const [followupsResult, interactionsResult] = await Promise.all([
+    supabase
+      .from("followups")
+      .select("company_id, scheduled_at, status")
+      .eq("organization_id", organization.id)
+      .in("company_id", companyIds)
+      .in("status", ["pending", "rescheduled"])
+      .order("scheduled_at", { ascending: true }),
+    supabase
+      .from("interactions")
+      .select("company_id, meeting_datetime")
+      .eq("organization_id", organization.id)
+      .in("company_id", companyIds)
+      .neq("status", "archived")
+      .order("meeting_datetime", { ascending: false }),
+  ]);
+
+  if (followupsResult.error) {
+    throw new Error(followupsResult.error.message);
+  }
+
+  if (interactionsResult.error) {
+    throw new Error(interactionsResult.error.message);
+  }
+
+  const nextFollowupByCompany = new Map<string, string>();
+  for (const followup of followupsResult.data ?? []) {
+    if (!nextFollowupByCompany.has(followup.company_id)) {
+      nextFollowupByCompany.set(followup.company_id, followup.scheduled_at);
+    }
+  }
+
+  const lastInteractionByCompany = new Map<string, string>();
+  for (const interaction of interactionsResult.data ?? []) {
+    if (!lastInteractionByCompany.has(interaction.company_id)) {
+      lastInteractionByCompany.set(interaction.company_id, interaction.meeting_datetime);
+    }
+  }
+
+  return companies.map((company) => ({
+    ...company,
+    next_followup_at: nextFollowupByCompany.get(company.id) ?? null,
+    last_interaction_at: lastInteractionByCompany.get(company.id) ?? null,
+  }));
+}
+
+export async function getPipelineSummary(companies?: PipelineBoardCompany[]): Promise<PipelineBoardSummary> {
+  const scopedCompanies = companies ?? await getPipelineCompanies();
+  const now = Date.now();
+
+  return scopedCompanies.reduce<PipelineBoardSummary>(
+    (summary, company) => {
+      const isWon = Boolean(company.pipeline_stages?.is_won);
+      const isLost = Boolean(company.pipeline_stages?.is_lost);
+      const isHot = company.lead_temperature === "hot" || company.lead_temperature === "very_hot";
+      const hasOverdueFollowup = Boolean(
+        company.next_followup_at && new Date(company.next_followup_at).getTime() < now && !isWon && !isLost,
+      );
+
+      if (!isWon && !isLost) {
+        summary.totalActiveDeals += 1;
+        summary.totalPipelineValue += Number(company.estimated_value ?? 0);
+      }
+
+      if (isHot) {
+        summary.hotLeads += 1;
+      }
+
+      if (isWon) {
+        summary.wonDeals += 1;
+      }
+
+      if (isLost) {
+        summary.lostDeals += 1;
+      }
+
+      if (hasOverdueFollowup) {
+        summary.overdueFollowups += 1;
+      }
+
+      return summary;
+    },
+    {
+      totalPipelineValue: 0,
+      totalActiveDeals: 0,
+      hotLeads: 0,
+      wonDeals: 0,
+      lostDeals: 0,
+      overdueFollowups: 0,
+    },
+  );
+}
+
+export async function getPipelineBoard(): Promise<PipelineBoardData> {
+  const [stages, companies, teamMembers, industries, categories] = await Promise.all([
+    getPipelineStagesForBoard(),
+    getPipelineCompanies(),
+    getTeamMembers(),
+    getIndustries(),
+    getCompanyCategories(),
+  ]);
+  const summary = await getPipelineSummary(companies);
+
+  return {
+    stages,
+    companies,
+    teamMembers,
+    industries,
+    categories,
+    summary,
   };
 }

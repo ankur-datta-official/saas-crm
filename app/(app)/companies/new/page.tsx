@@ -9,7 +9,7 @@ export default async function NewCompanyPage() {
     <div>
       <PageHeader
         title="Add Company"
-        description="Create a new company lead and place it into your CRM pipeline."
+        description="Start with the company name. You can add contacts, meetings, and follow-ups later."
       />
       <CompanyForm {...options} />
     </div>

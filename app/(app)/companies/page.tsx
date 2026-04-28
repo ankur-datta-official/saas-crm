@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { GuidanceStrip } from "@/components/shared/guidance-strip";
 import { CompanyTable } from "@/components/crm/company-table";
 import { PageHeader } from "@/components/shared/page-header";
 import { getCompanies, getCompanyFormOptions } from "@/lib/crm/queries";
@@ -20,8 +21,8 @@ export default async function CompaniesPage({
   return (
     <div>
       <PageHeader
-        title="Companies / Leads"
-        description="Manage company leads, qualification signals, pipeline stages, and ownership."
+        title="Companies & Leads"
+        description="Track every prospect, buyer, and relationship from one place."
         actions={
           <Button asChild>
             <Link href="/companies/new">
@@ -31,6 +32,9 @@ export default async function CompaniesPage({
           </Button>
         }
       />
+      <GuidanceStrip>
+        Start by adding a company, then attach contacts, meetings, and follow-ups as the relationship grows.
+      </GuidanceStrip>
       <CompanyTable companies={companies} {...options} />
     </div>
   );

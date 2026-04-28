@@ -18,7 +18,7 @@ export default async function EditContactPage({ params }: { params: Promise<{ id
     <div>
       <PageHeader
         title="Edit Contact"
-        description="Update contact details, relationship role, and communication preference."
+        description="Update relationship details, communication preferences, and company alignment for this contact."
       />
       <ContactForm contact={contact} companies={options.companies} />
     </div>

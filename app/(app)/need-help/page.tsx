@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
+import { GuidanceStrip } from "@/components/shared/guidance-strip";
 import { LoadingSkeleton } from "@/components/shared/loading-skeleton";
 import { HelpRequestTable } from "@/components/crm/help-request-table";
 import { getHelpRequests } from "@/lib/crm/help-request-queries";
@@ -17,19 +18,22 @@ export default async function NeedHelpPage({
   const filters = await searchParams;
 
   return (
-    <div className="container py-6">
+    <div className="space-y-6">
       <PageHeader
         title="Need Help"
-        description="Surface blocked deals, internal support requests, and escalation needs."
+        description="Escalate pricing, technical, proposal, or management support requests."
         actions={
           <Button asChild>
             <Link href="/need-help/new">
               <Plus className="mr-2 h-4 w-4" />
-              New Help Request
+              New Request
             </Link>
           </Button>
         }
       />
+      <GuidanceStrip>
+        Use this module when a deal is blocked and another teammate or manager needs to step in.
+      </GuidanceStrip>
 
       <Suspense fallback={<LoadingSkeleton />}>
         <HelpRequestsList filters={filters} />

@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Client Relationship & Meeting Management CRM",
-  description: "Enterprise multi-tenant CRM foundation for client relationship and meeting management.",
+  description: "Enterprise multi-tenant CRM for leads, meetings, follow-ups, documents, reporting, and team collaboration.",
 };
 
 export default function RootLayout({

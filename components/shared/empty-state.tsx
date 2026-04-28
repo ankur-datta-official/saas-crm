@@ -9,24 +9,25 @@ type EmptyStateProps = {
   icon: LucideIcon;
   actionLabel?: string;
   actionHref?: string;
+  onAction?: () => void;
 };
 
-export function EmptyState({ title, description, icon: Icon, actionLabel, actionHref }: EmptyStateProps) {
+export function EmptyState({ title, description, icon: Icon, actionLabel, actionHref, onAction }: EmptyStateProps) {
   return (
     <Card>
-      <CardContent className="flex min-h-72 flex-col items-center justify-center p-8 text-center">
-        <div className="flex size-12 items-center justify-center rounded-md bg-muted text-muted-foreground">
+      <CardContent className="flex min-h-[18rem] flex-col items-center justify-center p-8 text-center">
+        <div className="flex size-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
           <Icon className="size-6" />
         </div>
-        <h2 className="mt-4 text-lg font-semibold">{title}</h2>
-        <p className="mt-2 max-w-md text-sm text-muted-foreground">{description}</p>
+        <h2 className="mt-4 text-lg font-semibold text-slate-900">{title}</h2>
+        <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">{description}</p>
         {actionLabel ? (
           actionHref ? (
             <Button asChild className="mt-5" type="button">
               <Link href={actionHref}>{actionLabel}</Link>
             </Button>
           ) : (
-            <Button className="mt-5" type="button">
+            <Button className="mt-5" type="button" onClick={onAction}>
               {actionLabel}
             </Button>
           )

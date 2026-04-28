@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Copy, Mail } from "lucide-react";
+import { Copy, Mail, MoreHorizontal } from "lucide-react";
 import { ConfirmModal } from "@/components/shared/confirm-modal";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cancelTeamInvitation, resendTeamInvitation } from "@/lib/team/team-actions";
 import type { TeamInvitation } from "@/lib/team/types";
 import { InvitationStatusBadge, RoleBadge } from "./role-badge";
@@ -53,7 +54,7 @@ export function InvitationTable({ invitations, canManage }: InvitationTableProps
     <div className="space-y-4">
       <div className="grid gap-3 md:hidden">
         {invitations.map((invitation) => (
-          <div key={invitation.id} className="rounded-lg border bg-white p-4">
+          <div key={invitation.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="truncate font-medium">{invitation.email}</p>
@@ -71,35 +72,35 @@ export function InvitationTable({ invitations, canManage }: InvitationTableProps
                 <span>{new Date(invitation.expires_at).toLocaleString()}</span>
               </div>
             </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => copyInviteLink(invitation.token)}>
+            <div className="mt-4 flex items-center gap-2">
+              <Button type="button" variant="outline" size="sm" className="flex-1" onClick={() => copyInviteLink(invitation.token)}>
                 <Copy className="mr-2 h-4 w-4" />
                 Copy Link
               </Button>
               {canManage && invitation.status === "pending" ? (
-                <>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={isPending}
-                    onClick={() => refreshAfter(async () => {
-                      await resendTeamInvitation(invitation.id);
-                    })}
-                  >
-                    Resend
-                  </Button>
-                  <Button type="button" variant="ghost" size="sm" disabled={isPending} onClick={() => setCancelId(invitation.id)}>
-                    Cancel
-                  </Button>
-                </>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button type="button" variant="ghost" size="icon" disabled={isPending}>
+                      <MoreHorizontal className="h-4 w-4" />
+                      <span className="sr-only">More actions</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => refreshAfter(async () => { await resendTeamInvitation(invitation.id); })}>
+                      Resend
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setCancelId(invitation.id)} className="text-rose-600">
+                      Cancel
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               ) : null}
             </div>
           </div>
         ))}
       </div>
 
-      <div className="hidden overflow-hidden rounded-lg border bg-white md:block">
+      <div className="crm-table-shell hidden md:block">
         <Table>
           <TableHeader className="bg-muted/40">
             <TableRow>
@@ -121,29 +122,29 @@ export function InvitationTable({ invitations, canManage }: InvitationTableProps
                 <TableCell><RoleBadge name={invitation.role_name ?? "Unassigned"} /></TableCell>
                 <TableCell>{invitation.invited_by_name ?? "Unknown"}</TableCell>
                 <TableCell><InvitationStatusBadge status={invitation.status} /></TableCell>
-                <TableCell>{new Date(invitation.expires_at).toLocaleString()}</TableCell>
+                <TableCell className="max-w-[180px] truncate">{new Date(invitation.expires_at).toLocaleString()}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
                     <Button type="button" variant="outline" size="sm" onClick={() => copyInviteLink(invitation.token)}>
                       Copy Link
                     </Button>
                     {canManage && invitation.status === "pending" ? (
-                      <>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={isPending}
-                          onClick={() => refreshAfter(async () => {
-                            await resendTeamInvitation(invitation.id);
-                          })}
-                        >
-                          Resend
-                        </Button>
-                        <Button type="button" variant="ghost" size="sm" disabled={isPending} onClick={() => setCancelId(invitation.id)}>
-                          Cancel
-                        </Button>
-                      </>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button type="button" variant="ghost" size="icon" disabled={isPending}>
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">More actions</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => refreshAfter(async () => { await resendTeamInvitation(invitation.id); })}>
+                            Resend
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setCancelId(invitation.id)} className="text-rose-600">
+                            Cancel
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     ) : null}
                   </div>
                 </TableCell>

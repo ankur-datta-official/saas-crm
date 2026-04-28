@@ -162,6 +162,27 @@ async function validateCompanyRelations(
   return fieldErrors;
 }
 
+async function getPipelineStageInOrganization(stageId: string) {
+  const organization = await requireOrganization();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("pipeline_stages")
+    .select("id, name, color, probability, is_won, is_lost, is_active")
+    .eq("id", stageId)
+    .eq("organization_id", organization.id)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data || !data.is_active) {
+    throw new Error("Selected pipeline stage is not available in this workspace.");
+  }
+
+  return data;
+}
+
 async function requireContactInOrganization(contactId: string) {
   const organization = await requireOrganization();
   const supabase = await createClient();
@@ -783,4 +804,125 @@ export async function setPrimaryContactAction(id: string): Promise<CrmActionStat
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : "Unable to set primary contact." };
   }
+}
+
+export async function moveCompanyToPipelineStage(companyId: string, stageId: string): Promise<CrmActionState> {
+  const user = await requireAuth();
+  const organization = await requireOrganization();
+  const supabase = await createClient();
+
+  try {
+    const [stage, existingCompanyResult] = await Promise.all([
+      getPipelineStageInOrganization(stageId),
+      supabase
+        .from("companies")
+        .select("id, name, pipeline_stage_id")
+        .eq("id", companyId)
+        .eq("organization_id", organization.id)
+        .maybeSingle(),
+    ]);
+
+    if (existingCompanyResult.error) {
+      throw existingCompanyResult.error;
+    }
+
+    if (!existingCompanyResult.data) {
+      return { ok: false, error: "Company was not found in your workspace." };
+    }
+
+    if (existingCompanyResult.data.pipeline_stage_id === stage.id) {
+      return { ok: true, id: companyId };
+    }
+
+    const { error } = await supabase
+      .from("companies")
+      .update({
+        pipeline_stage_id: stage.id,
+        updated_by: user.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", companyId)
+      .eq("organization_id", organization.id);
+
+    if (error) {
+      logServerError("company.pipeline_stage_move", error, {
+        organizationId: organization.id,
+        companyId,
+        targetStageId: stage.id,
+      });
+      return { ok: false, error: getSafeErrorMessage(error, "Unable to move the company in the pipeline right now.") };
+    }
+
+    await insertActivityLog("company.pipeline_stage_changed", "company", companyId, {
+      from: existingCompanyResult.data.pipeline_stage_id,
+      to: stage.id,
+      to_stage_name: stage.name,
+      is_won: stage.is_won,
+      is_lost: stage.is_lost,
+    });
+
+    revalidatePath("/pipeline");
+    revalidatePath("/companies");
+    revalidatePath(`/companies/${companyId}`);
+    revalidatePath("/reports");
+    return { ok: true, id: companyId };
+  } catch (error) {
+    logServerError("company.pipeline_stage_move", error, {
+      organizationId: organization.id,
+      companyId,
+      stageId,
+    });
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Unable to move the company in the pipeline right now.",
+    };
+  }
+}
+
+export async function markCompanyWon(companyId: string): Promise<CrmActionState> {
+  const organization = await requireOrganization();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("pipeline_stages")
+    .select("id")
+    .eq("organization_id", organization.id)
+    .eq("is_active", true)
+    .eq("is_won", true)
+    .order("position")
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+
+  if (!data) {
+    return { ok: false, error: "No active Won stage is configured for this workspace." };
+  }
+
+  return moveCompanyToPipelineStage(companyId, data.id);
+}
+
+export async function markCompanyLost(companyId: string): Promise<CrmActionState> {
+  const organization = await requireOrganization();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("pipeline_stages")
+    .select("id")
+    .eq("organization_id", organization.id)
+    .eq("is_active", true)
+    .eq("is_lost", true)
+    .order("position")
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+
+  if (!data) {
+    return { ok: false, error: "No active Lost stage is configured for this workspace." };
+  }
+
+  return moveCompanyToPipelineStage(companyId, data.id);
 }

@@ -27,6 +27,20 @@ Use this checklist for final manual QA before a demo, staging release, or produc
 - Archive company.
 - Confirm company list does not create full-page horizontal scroll.
 
+## Pipeline
+
+- Open `/pipeline`.
+- Confirm active stages render as Kanban columns.
+- Confirm empty stages explain how to move a deal there or add a new lead.
+- Drag a company from one stage to another.
+- Move a company to Won from a deal card.
+- Move a company to Lost from a deal card.
+- Confirm the stage change appears on the company profile.
+- Test search and board filters.
+- Confirm the board scrolls horizontally inside the board container only.
+- Confirm activity logs capture `company.pipeline_stage_changed`.
+- Confirm the board remains readable on mobile or narrow viewport sizes.
+
 ## Contacts
 
 - Create a contact from `/contacts/new`.
@@ -139,6 +153,35 @@ Use this checklist for final manual QA before a demo, staging release, or produc
 
 ## Final checks
 
+- Review the main CRM pages for visual consistency in headers, cards, buttons, inputs, tables, and badges.
+- Review module-wise UX clarity on the main CRM pages:
+  - Page title is clear.
+  - Primary CTA is clear.
+  - Empty state is helpful.
+  - Filters are usable without feeling overwhelming.
+  - Mobile view remains readable.
+- Review major create and edit forms for UX quality:
+  - Required fields are clear.
+  - Optional fields are collapsible where appropriate.
+  - Cancel returns to the correct place.
+  - Save works.
+  - Save & Add Another works where available.
+  - Validation and upload errors are user-friendly.
+  - Mobile layout remains readable.
+- Review list and table UX quality:
+  - No full-page horizontal scroll appears.
+  - Filters are understandable and “More filters” reads like an action trigger.
+  - Primary row or card action is clear.
+  - Mobile cards remain readable.
+  - Empty states are helpful.
+- Review final visual polish and micro-interactions:
+  - Hover states feel consistent and subtle.
+  - Loading states look clean.
+  - Success and error feedback is understandable.
+  - Modals are clear and button intent is obvious.
+  - Dropdowns do not overflow the screen.
+  - Focus rings remain visible.
+  - Mobile layouts still feel comfortable.
 - Run `npm run build`.
 - Run `npm run typecheck`.
 - Run `npm run lint`.

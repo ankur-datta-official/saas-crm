@@ -37,7 +37,7 @@ export function GlobalSearchResults({
     : 0;
 
   return (
-    <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-50 overflow-hidden rounded-xl border bg-background shadow-lg">
+    <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-50 overflow-hidden rounded-2xl border border-slate-200 bg-background shadow-soft">
       {isLoading ? (
         <div className="flex items-center gap-2 px-4 py-6 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
@@ -71,7 +71,7 @@ export function GlobalSearchResults({
                         key={item.id}
                         href={item.href}
                         onClick={onResultClick}
-                        className="flex items-start justify-between gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-muted"
+                        className="flex items-start justify-between gap-3 rounded-xl px-3 py-2 transition-colors duration-150 hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring/20"
                       >
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium">{item.title}</p>

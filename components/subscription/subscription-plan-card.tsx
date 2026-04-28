@@ -68,7 +68,7 @@ export function SubscriptionPlanCard({ plan, isCurrent, canManage, featureItems 
             {isCurrent ? "Current Plan" : isPending ? "Switching..." : "Switch Plan"}
           </Button>
         ) : (
-          <p className="text-sm text-muted-foreground">Billing integration coming soon.</p>
+          <p className="text-sm text-muted-foreground">Manual billing changes are handled by your workspace administrator.</p>
         )}
       </CardContent>
     </Card>

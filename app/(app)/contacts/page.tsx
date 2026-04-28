@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { GuidanceStrip } from "@/components/shared/guidance-strip";
 import { ContactTable } from "@/components/crm/contact-table";
 import { PageHeader } from "@/components/shared/page-header";
 import { getCompanies, getContacts } from "@/lib/crm/queries";
@@ -17,7 +18,7 @@ export default async function ContactsPage({ searchParams }: { searchParams: Pro
     <div>
       <PageHeader
         title="Contacts"
-        description="Manage decision makers, relationship strength, and communication preferences."
+        description="Keep track of decision makers, influencers, and day-to-day contact details."
         actions={
           <Button asChild>
             <Link href="/contacts/new">
@@ -27,6 +28,9 @@ export default async function ContactsPage({ searchParams }: { searchParams: Pro
           </Button>
         }
       />
+      <GuidanceStrip>
+        Add contacts under your companies so every meeting, follow-up, and document stays tied to the right people.
+      </GuidanceStrip>
       <ContactTable contacts={contacts} companies={companies} />
     </div>
   );

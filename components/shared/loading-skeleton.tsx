@@ -7,9 +7,9 @@ type LoadingSkeletonProps = {
 
 export function LoadingSkeleton({ className, rows = 3 }: LoadingSkeletonProps) {
   return (
-    <div className={cn("space-y-3", className)}>
+    <div className={cn("space-y-3 rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-soft", className)}>
       {Array.from({ length: rows }).map((_, index) => (
-        <div key={index} className="h-12 animate-pulse rounded-md bg-muted" />
+        <div key={index} className="h-12 animate-pulse rounded-xl bg-slate-100" />
       ))}
     </div>
   );

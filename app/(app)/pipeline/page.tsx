@@ -1,14 +1,15 @@
-import { KanbanSquare } from "lucide-react";
-import { ModulePlaceholder } from "@/components/shared/module-placeholder";
+import { PipelineBoard } from "@/components/pipeline/pipeline-board";
+import { requirePermission } from "@/lib/auth/session";
+import { getPipelineBoard } from "@/lib/crm/queries";
 
-export default function PipelinePage() {
-  return (
-    <ModulePlaceholder
-      title="Pipeline"
-      description="View lead stages, opportunity value, deal movement, and probability signals."
-      emptyTitle="Pipeline board foundation is available"
-      emptyDescription="Kanban stages, drag-and-drop, and forecasting data can be layered in later."
-      icon={KanbanSquare}
-    />
-  );
+export const metadata = {
+  title: "Pipeline | SaaS CRM",
+  description: "Track deal movement across the CRM pipeline board.",
+};
+
+export default async function PipelinePage() {
+  await requirePermission("companies.view");
+  const board = await getPipelineBoard();
+
+  return <PipelineBoard {...board} />;
 }

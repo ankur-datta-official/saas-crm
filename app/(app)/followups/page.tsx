@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
+import { GuidanceStrip } from "@/components/shared/guidance-strip";
 import { LoadingSkeleton } from "@/components/shared/loading-skeleton";
 import { FollowupTable } from "@/components/crm/followup-table";
 import { getFollowups } from "@/lib/crm/followup-queries";
@@ -17,19 +18,22 @@ export default async function FollowupsPage({
   const filters = await searchParams;
 
   return (
-    <div className="container py-6">
+    <div className="space-y-6">
       <PageHeader
         title="Follow-ups"
-        description="Manage your scheduled actions and reminders."
+        description="Stay on top of next calls, reminders, and overdue client actions."
         actions={
           <Button asChild>
             <Link href="/followups/new">
               <Plus className="mr-2 h-4 w-4" />
-              New Follow-up
+              Create Follow-up
             </Link>
           </Button>
         }
       />
+      <GuidanceStrip>
+        Use filters to focus on high-priority or overdue work so no client action is missed.
+      </GuidanceStrip>
 
       <Suspense fallback={<LoadingSkeleton />}>
         <FollowupsList filters={filters} />

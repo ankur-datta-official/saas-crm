@@ -18,6 +18,9 @@ Run this checklist after every staging deployment.
 ## CRM CRUD test
 
 - Create, view, edit, and archive a company.
+- Open `/pipeline` and confirm the new company appears in the expected stage.
+- Drag the company to another stage and confirm the move succeeds.
+- Move a company to Won and then to Lost if staging data allows.
 - Create, view, edit, and archive a contact.
 - Create, view, edit, and archive a meeting.
 - Create, complete, and archive a follow-up.
@@ -36,6 +39,7 @@ Run this checklist after every staging deployment.
 - Search for a contact email.
 - Search for meeting discussion text.
 - Confirm `/search?q=...` works.
+- Confirm a pipeline-moved company is still discoverable through search and profile links.
 
 ## Notification test
 

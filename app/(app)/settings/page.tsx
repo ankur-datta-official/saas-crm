@@ -1,6 +1,7 @@
 import { BriefcaseBusiness, Building2, KanbanSquare } from "lucide-react";
 import { CrmSettingsCard } from "@/components/crm/crm-settings-card";
 import { PageHeader } from "@/components/shared/page-header";
+import { GuidanceStrip } from "@/components/shared/guidance-strip";
 import { requireAnyPermission } from "@/lib/auth/session";
 
 export default async function SettingsPage() {
@@ -12,6 +13,9 @@ export default async function SettingsPage() {
         title="Settings"
         description="Configure CRM base data, workspace defaults, and sales workflow settings."
       />
+      <GuidanceStrip>
+        Update the base labels and pipeline stages here so your team sees the right options everywhere else in the CRM.
+      </GuidanceStrip>
       <div className="grid gap-4 lg:grid-cols-3">
         <CrmSettingsCard
           title="Industries"

@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { BarChart3 } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
+import { GuidanceStrip } from "@/components/shared/guidance-strip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ReportFilterBar } from "@/components/crm/reports/report-filter-bar";
 import { ReportTabs } from "@/components/crm/reports/report-tabs";
@@ -72,8 +73,11 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
     <div className="space-y-6">
       <PageHeader
         title="Reports & Analytics"
-        description="Analyze your CRM data and team performance."
+        description="Review sales progress, pipeline movement, follow-up discipline, and team performance."
       />
+      <GuidanceStrip>
+        Start with Sales Overview for a quick read, then switch tabs to inspect pipeline, meetings, follow-ups, and support trends.
+      </GuidanceStrip>
 
       <ReportFilterBar
         users={users}

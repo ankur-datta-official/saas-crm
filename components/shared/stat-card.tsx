@@ -22,15 +22,15 @@ const toneClasses = {
 
 export function StatCard({ title, value, description, icon: Icon, tone = "teal", href }: StatCardProps) {
   const content = (
-    <Card className={cn(href && "hover:border-primary/50 transition-colors")}>
-      <CardContent className="p-5">
+    <Card className={cn("rounded-2xl", href && "transition-colors hover:border-primary/30 hover:bg-slate-50/40")}>
+      <CardContent className="p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="mt-3 text-3xl font-semibold tracking-normal">{value}</p>
-            {description ? <p className="mt-2 text-xs text-muted-foreground">{description}</p> : null}
+            <p className="text-sm font-medium text-slate-500">{title}</p>
+            <p className="mt-3 text-3xl font-semibold tracking-normal text-slate-900">{value}</p>
+            {description ? <p className="mt-2 text-sm text-slate-500">{description}</p> : null}
           </div>
-          <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-md", toneClasses[tone])}>
+          <div className={cn("flex size-11 shrink-0 items-center justify-center rounded-xl", toneClasses[tone])}>
             <Icon className="size-5" />
           </div>
         </div>

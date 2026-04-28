@@ -26,7 +26,7 @@ export default async function EditFollowupPage({ params }: { params: Promise<{ i
     <div className="container py-6">
       <PageHeader
         title="Edit Follow-up"
-        description="Update the details or status of this follow-up action."
+        description="Adjust the schedule, ownership, or status of this follow-up without recreating it."
       />
       <div className="mt-6 max-w-5xl">
         <Suspense fallback={<LoadingSkeleton />}>

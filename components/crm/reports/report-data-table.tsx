@@ -78,7 +78,7 @@ export function ReportDataTable<T extends Record<string, any>>({
         </div>
       </div>
 
-      <div className="rounded-md border bg-card">
+      <div className="crm-table-shell print:overflow-visible">
         <Table>
           <TableHeader>
             <TableRow>

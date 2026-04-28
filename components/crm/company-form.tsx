@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FormActionBar, FormContextHint, FormRequiredNote } from "@/components/shared/form-helpers";
 import { companySchema, type CompanyFormValues } from "@/lib/crm/schemas";
 import type { Company, CompanyCategory, Industry, PipelineStage, TeamMemberOption } from "@/lib/crm/types";
 import { createCompanyAction, updateCompanyAction } from "@/lib/crm/actions";
@@ -46,7 +47,7 @@ export function CompanyForm({ company, industries, categories, stages, teamMembe
       website: company?.website ?? "",
       address: company?.address ?? "",
       city: company?.city ?? "",
-      country: company?.country ?? "",
+      country: company?.country ?? "Bangladesh",
       success_rating: company?.success_rating ?? "",
       lead_temperature: company?.lead_temperature ?? "warm",
       estimated_value: company?.estimated_value ?? "",
@@ -83,7 +84,7 @@ export function CompanyForm({ company, industries, categories, stages, teamMembe
           website: "",
           address: "",
           city: "",
-          country: "",
+          country: "Bangladesh",
           success_rating: "",
           lead_temperature: "warm",
           estimated_value: "",
@@ -101,9 +102,7 @@ export function CompanyForm({ company, industries, categories, stages, teamMembe
 
   return (
     <form className="space-y-5" onSubmit={form.handleSubmit((values) => onSubmit(values, "save"))}>
-      <p className="rounded-md border bg-white p-3 text-sm text-muted-foreground">
-        Only basic information is required. You can add more details later.
-      </p>
+      <FormRequiredNote message="Start with the company name. You can add contacts, meetings, follow-ups, and more detailed qualification fields later." />
       <FormSection title="Basic Information" description="Core lead classification, ownership, and pipeline placement.">
         <Field label="Company name" required error={form.formState.errors.name?.message}>
           <Input {...form.register("name")} placeholder="Acme Enterprise" />
@@ -147,6 +146,9 @@ export function CompanyForm({ company, industries, categories, stages, teamMembe
       </FormSection>
 
       <CollapsibleSection title="Contact Information" description="Public contact channels and location details.">
+        <div className="md:col-span-2 xl:col-span-4">
+          <FormContextHint message="You can keep this lead lightweight for now. Add phone, email, and address details only when they are available." />
+        </div>
         <Field label="Phone"><Input {...form.register("phone")} /></Field>
         <Field label="WhatsApp"><Input {...form.register("whatsapp")} /></Field>
         <Field label="Email" error={form.formState.errors.email?.message ?? serverFieldErrors.email}><Input {...form.register("email")} /></Field>
@@ -180,7 +182,7 @@ export function CompanyForm({ company, industries, categories, stages, teamMembe
           <textarea
             id="notes"
             {...form.register("notes")}
-            className="min-h-32 w-full rounded-md border bg-background px-3 py-2 text-sm"
+            className="min-h-32 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm"
             placeholder="Capture relationship context, requirements, risks, and decision notes."
           />
         </div>
@@ -188,7 +190,10 @@ export function CompanyForm({ company, industries, categories, stages, teamMembe
 
       {serverError ? <p className="rounded-md bg-rose-50 p-3 text-sm text-rose-700">{serverError}</p> : null}
       {successMessage ? <p className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">{successMessage}</p> : null}
-      <div className="flex flex-wrap gap-2">
+      <FormActionBar>
+        <Button asChild variant="outline">
+          <Link href={company ? `/companies/${company.id}` : "/companies"}>Cancel</Link>
+        </Button>
         <Button type="submit" disabled={isPending || form.formState.isSubmitting}>
           <Save />
           {company ? "Update company" : "Save"}
@@ -203,10 +208,7 @@ export function CompanyForm({ company, industries, categories, stages, teamMembe
             Save & Add Another
           </Button>
         ) : null}
-        <Button asChild variant="outline">
-          <Link href={company ? `/companies/${company.id}` : "/companies"}>Cancel</Link>
-        </Button>
-      </div>
+      </FormActionBar>
     </form>
   );
 }
@@ -245,10 +247,17 @@ function CollapsibleSection({
   columns?: string;
 }) {
   return (
-    <details className="rounded-lg border bg-card text-card-foreground shadow-soft">
+    <details className="rounded-xl border bg-card text-card-foreground shadow-soft">
       <summary className="cursor-pointer list-none p-5">
-        <h3 className="text-base font-semibold">{title}</h3>
-        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-base font-semibold">{title}</h3>
+            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+          </div>
+          <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
+            Optional
+          </span>
+        </div>
       </summary>
       <div className={`grid gap-4 p-5 pt-0 ${columns}`}>{children}</div>
     </details>
@@ -278,7 +287,7 @@ function SelectField({
         <Label>{label}</Label>
         {helper}
       </div>
-      <select {...props} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
+      <select {...props} className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm shadow-sm">
         {children}
       </select>
       {error ? <p className="text-xs text-destructive">{error}</p> : null}

@@ -4,13 +4,14 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 import type React from "react";
-import { Edit, Eye, Plus, Trash2 } from "lucide-react";
+import { Edit, Eye, MoreHorizontal, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfirmModal } from "@/components/shared/confirm-modal";
 import { EmptyState } from "@/components/shared/empty-state";
 import { CompanyStatusBadge } from "@/components/crm/company-status-badge";
 import { LeadTemperatureBadge } from "@/components/crm/lead-temperature-badge";
 import { RatingBadge } from "@/components/crm/rating-badge";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { archiveCompanyAction } from "@/lib/crm/actions";
 import type { Company, CompanyCategory, Industry, PipelineStage, TeamMemberOption } from "@/lib/crm/types";
 
@@ -39,23 +40,31 @@ export function CompanyTable({ companies, industries, categories, stages, teamMe
 
   return (
     <div className="space-y-4">
-      <form action={applyFilters} className="grid gap-3 rounded-lg border bg-white p-4 md:grid-cols-3 xl:grid-cols-7">
+      <form action={applyFilters} className="crm-filter-surface grid gap-3 md:grid-cols-3 xl:grid-cols-7">
         <InputLike name="search" placeholder="Search leads..." defaultValue={searchParams.get("search") ?? ""} />
         <SelectLike name="industry" defaultValue={searchParams.get("industry") ?? ""} options={industries.map((item) => [item.id, item.name])} label="Industry" />
         <SelectLike name="category" defaultValue={searchParams.get("category") ?? ""} options={categories.map((item) => [item.id, item.name])} label="Category" />
-        <SelectLike name="pipeline" defaultValue={searchParams.get("pipeline") ?? ""} options={stages.map((item) => [item.id, item.name])} label="Pipeline" />
-        <SelectLike name="priority" defaultValue={searchParams.get("priority") ?? ""} options={[["low", "Low"], ["medium", "Medium"], ["high", "High"], ["urgent", "Urgent"]]} label="Priority" />
-        <SelectLike name="temperature" defaultValue={searchParams.get("temperature") ?? ""} options={[["cold", "Cold"], ["warm", "Warm"], ["hot", "Hot"]]} label="Temperature" />
-        <SelectLike name="assigned" defaultValue={searchParams.get("assigned") ?? ""} options={teamMembers.map((item) => [item.id, item.full_name ?? item.email])} label="Assigned" />
-        <div className="md:col-span-3 xl:col-span-7">
+        <details className="md:col-span-3 xl:col-span-4">
+          <summary className="crm-filter-summary">
+            More filters
+          </summary>
+          <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <SelectLike name="pipeline" defaultValue={searchParams.get("pipeline") ?? ""} options={stages.map((item) => [item.id, item.name])} label="Pipeline" />
+            <SelectLike name="priority" defaultValue={searchParams.get("priority") ?? ""} options={[["low", "Low"], ["medium", "Medium"], ["high", "High"], ["urgent", "Urgent"]]} label="Priority" />
+            <SelectLike name="temperature" defaultValue={searchParams.get("temperature") ?? ""} options={[["cold", "Cold"], ["warm", "Warm"], ["hot", "Hot"]]} label="Temperature" />
+            <SelectLike name="assigned" defaultValue={searchParams.get("assigned") ?? ""} options={teamMembers.map((item) => [item.id, item.full_name ?? item.email])} label="Assigned" />
+          </div>
+        </details>
+        <div className="md:col-span-3 xl:col-span-7 flex flex-wrap gap-2">
           <Button type="submit">Apply filters</Button>
+          <Button type="button" variant="outline" onClick={() => router.push("/companies")}>Reset</Button>
         </div>
       </form>
 
       {companies.length === 0 ? (
         <EmptyState
-          title="No companies added yet"
-          description="Add your first lead or import data later."
+          title="No companies yet"
+          description="No companies yet. Add your first lead to start tracking meetings, follow-ups, and pipeline progress."
           icon={Plus}
           actionLabel="Add Company"
           actionHref="/companies/new"
@@ -63,7 +72,7 @@ export function CompanyTable({ companies, industries, categories, stages, teamMe
       ) : (
         <div className="space-y-3 md:hidden">
           {companies.map((company) => (
-            <div key={company.id} className="rounded-lg border bg-white p-4">
+            <div key={company.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="truncate font-medium">{company.name}</p>
@@ -77,9 +86,17 @@ export function CompanyTable({ companies, industries, categories, stages, teamMe
                 <RatingBadge rating={company.success_rating} />
                 <LeadTemperatureBadge temperature={company.lead_temperature} />
               </div>
-              <div className="mt-3 flex gap-1">
-                <Button asChild size="sm" variant="outline"><Link href={`/companies/${company.id}`}>View</Link></Button>
-                <Button asChild size="sm" variant="ghost"><Link href={`/companies/${company.id}/edit`}>Edit</Link></Button>
+              <div className="mt-3 flex items-center gap-2">
+                <Button asChild size="sm" variant="outline" className="flex-1"><Link href={`/companies/${company.id}`}>Open</Link></Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="icon" variant="ghost"><MoreHorizontal /><span className="sr-only">More actions</span></Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem asChild><Link href={`/companies/${company.id}/edit`}><Edit className="mr-2 h-4 w-4" />Edit</Link></DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setArchiveId(company.id)} className="text-rose-600"><Trash2 className="mr-2 h-4 w-4" />Archive</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           ))}
@@ -87,43 +104,50 @@ export function CompanyTable({ companies, industries, categories, stages, teamMe
       )}
 
       {companies.length > 0 ? (
-        <div className="hidden max-w-full overflow-hidden rounded-lg border bg-white md:block">
+        <div className="crm-table-shell hidden max-w-full md:block">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[860px] table-fixed text-left text-sm">
-              <thead className="border-b bg-muted/50 text-xs uppercase text-muted-foreground">
+            <table className="crm-table min-w-[820px] table-fixed">
+              <thead className="crm-table-head">
                 <tr>
-                  <th className="w-[18%] px-4 py-3">Company Name</th>
+                  <th className="w-[22%] px-4 py-3">Company Name</th>
                   <th className="w-[15%] px-4 py-3">Primary Contact</th>
-                  <th className="w-[13%] px-4 py-3">Industry</th>
+                  <th className="w-[14%] px-4 py-3">Industry</th>
                   <th className="w-[14%] px-4 py-3">Stage</th>
                   <th className="w-[9%] px-4 py-3">Rating</th>
                   <th className="w-[11%] px-4 py-3">Temperature</th>
-                  <th className="w-[12%] px-4 py-3">Assigned To</th>
+                  <th className="w-[13%] px-4 py-3">Assigned To</th>
                   <th className="w-[8%] px-4 py-3">Status</th>
-                  <th className="w-[10%] px-4 py-3">Actions</th>
+                  <th className="w-[9%] px-4 py-3">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {companies.map((company) => (
-                  <tr key={company.id} className="border-b last:border-0">
-                    <td className="truncate px-4 py-3 font-medium">{company.name}</td>
-                    <td className="truncate px-4 py-3">{company.primary_contact?.name ?? "-"}</td>
-                    <td className="truncate px-4 py-3">{company.industries?.name ?? "-"}</td>
-                    <td className="truncate px-4 py-3">
+                  <tr key={company.id} className="border-b border-border/80 last:border-0 transition-colors hover:bg-slate-50/80">
+                    <td className="crm-table-cell truncate font-medium text-slate-900">{company.name}</td>
+                    <td className="crm-table-cell truncate">{company.primary_contact?.name ?? "-"}</td>
+                    <td className="crm-table-cell truncate">{company.industries?.name ?? "-"}</td>
+                    <td className="crm-table-cell truncate">
                       <span className="inline-flex min-w-0 items-center gap-2">
                         {company.pipeline_stages?.color ? <span className="size-3 shrink-0 rounded-full" style={{ background: company.pipeline_stages.color }} /> : null}
                         <span className="truncate">{company.pipeline_stages?.name ?? "-"}</span>
                       </span>
                     </td>
-                    <td className="px-4 py-3"><RatingBadge rating={company.success_rating} /></td>
-                    <td className="px-4 py-3"><LeadTemperatureBadge temperature={company.lead_temperature} /></td>
-                    <td className="truncate px-4 py-3">{company.assigned_profile?.full_name ?? company.assigned_profile?.email ?? "Unassigned"}</td>
-                    <td className="px-4 py-3"><CompanyStatusBadge status={company.status} /></td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-1">
-                        <Button asChild size="icon" variant="ghost"><Link href={`/companies/${company.id}`}><Eye /><span className="sr-only">View</span></Link></Button>
-                        <Button asChild size="icon" variant="ghost"><Link href={`/companies/${company.id}/edit`}><Edit /><span className="sr-only">Edit</span></Link></Button>
-                        <Button size="icon" variant="ghost" onClick={() => setArchiveId(company.id)}><Trash2 /><span className="sr-only">Archive</span></Button>
+                    <td className="crm-table-cell"><RatingBadge rating={company.success_rating} /></td>
+                    <td className="crm-table-cell"><LeadTemperatureBadge temperature={company.lead_temperature} /></td>
+                    <td className="crm-table-cell truncate">{company.assigned_profile?.full_name ?? company.assigned_profile?.email ?? "Unassigned"}</td>
+                    <td className="crm-table-cell"><CompanyStatusBadge status={company.status} /></td>
+                    <td className="crm-table-cell">
+                      <div className="flex items-center gap-2">
+                        <Button asChild size="sm" variant="outline"><Link href={`/companies/${company.id}`}>Open</Link></Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="icon" variant="ghost"><MoreHorizontal /><span className="sr-only">More actions</span></Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild><Link href={`/companies/${company.id}/edit`}><Edit className="mr-2 h-4 w-4" />Edit</Link></DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setArchiveId(company.id)} className="text-rose-600"><Trash2 className="mr-2 h-4 w-4" />Archive</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </td>
                   </tr>
@@ -155,7 +179,7 @@ export function CompanyTable({ companies, industries, categories, stages, teamMe
 }
 
 function InputLike(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} className="h-10 rounded-md border bg-background px-3 text-sm" />;
+  return <input {...props} className="crm-filter-input" />;
 }
 
 function SelectLike({
@@ -164,7 +188,7 @@ function SelectLike({
   ...props
 }: React.SelectHTMLAttributes<HTMLSelectElement> & { label: string; options: string[][] }) {
   return (
-    <select {...props} className="h-10 rounded-md border bg-background px-3 text-sm">
+    <select {...props} className="crm-filter-select">
       <option value="">{label}</option>
       {options.map(([value, name]) => <option key={value} value={value}>{name}</option>)}
     </select>

@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { FileText } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { DocumentForm } from "@/components/crm/document-form";
 import { getDocumentById } from "@/lib/crm/document-queries";
@@ -28,7 +27,7 @@ export default async function EditDocumentPage({ params }: { params: Promise<{ i
     <div className="space-y-6 max-w-5xl mx-auto">
       <PageHeader
         title="Edit Document"
-        description={`Updating metadata for ${document.title}`}
+        description={`Update the metadata and CRM links for ${document.title}.`}
       />
 
       <DocumentForm 

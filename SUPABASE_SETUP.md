@@ -183,7 +183,20 @@ GET /api/cron/followup-reminders?secret=test-secret
 
 3. Confirm skipped reminders are logged safely when email sending is disabled.
 
-## 11. Optional demo data
+## 11. Sprint 15 manual test
+
+1. Create or confirm companies exist in multiple pipeline stages.
+2. Open `/pipeline`.
+3. Confirm each active stage renders as a board column.
+4. Drag a company from `New Lead` to `Proposal Sent`.
+5. Open the company profile and confirm the stage changed there too.
+6. Use the card action to move a company to Won.
+7. Use the card action to move a company to Lost.
+8. Test board filters for assigned user, industry, category, temperature, priority, and expected closing date.
+9. Confirm activity logs contain `company.pipeline_stage_changed`.
+10. Confirm the board stays readable on mobile or narrower layouts.
+
+## 12. Optional demo data
 
 An optional seed file is available at:
 
@@ -193,7 +206,7 @@ supabase/seeds/demo_data.sql
 
 Do not auto-run it in production. Use it only for local demos, staging previews, or QA.
 
-## 12. Final verification
+## 13. Final verification
 
 1. Run `npm run build`.
 2. Run `npm run typecheck`.

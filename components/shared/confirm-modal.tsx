@@ -32,6 +32,10 @@ export function ConfirmModal({
   onConfirm,
   children,
 }: ConfirmModalProps) {
+  const isDestructive =
+    /archive|delete|deactivate|cancel|reject|remove/i.test(confirmLabel) ||
+    /archive|delete|deactivate|cancel|reject|remove/i.test(title);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -40,11 +44,11 @@ export function ConfirmModal({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         {children}
-        <DialogFooter>
+        <DialogFooter className="gap-2 sm:justify-end">
           <DialogClose asChild>
             <Button variant="outline">{cancelLabel}</Button>
           </DialogClose>
-          <Button variant="destructive" onClick={onConfirm}>
+          <Button variant={isDestructive ? "destructive" : "default"} onClick={onConfirm}>
             {confirmLabel}
           </Button>
         </DialogFooter>

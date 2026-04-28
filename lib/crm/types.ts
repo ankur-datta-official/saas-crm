@@ -111,7 +111,7 @@ export type Company = {
   updated_at: string;
   industries?: Pick<Industry, "id" | "name"> | null;
   company_categories?: Pick<CompanyCategory, "id" | "name" | "code"> | null;
-  pipeline_stages?: Pick<PipelineStage, "id" | "name" | "color"> | null;
+  pipeline_stages?: Pick<PipelineStage, "id" | "name" | "color" | "probability" | "is_won" | "is_lost"> | null;
   assigned_profile?: {
     id: string;
     full_name: string | null;
@@ -168,6 +168,29 @@ export type CompanyFilters = {
   priority?: string;
   temperature?: string;
   assigned?: string;
+};
+
+export type PipelineBoardCompany = Company & {
+  next_followup_at: string | null;
+  last_interaction_at: string | null;
+};
+
+export type PipelineBoardSummary = {
+  totalPipelineValue: number;
+  totalActiveDeals: number;
+  hotLeads: number;
+  wonDeals: number;
+  lostDeals: number;
+  overdueFollowups: number;
+};
+
+export type PipelineBoardData = {
+  stages: PipelineStage[];
+  companies: PipelineBoardCompany[];
+  teamMembers: TeamMemberOption[];
+  industries: Industry[];
+  categories: CompanyCategory[];
+  summary: PipelineBoardSummary;
 };
 
 export type ContactFilters = {

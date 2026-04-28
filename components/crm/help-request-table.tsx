@@ -4,7 +4,7 @@ import type React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Edit, Eye, Plus, CheckCircle2, XCircle, Archive, RotateCcw, CircleHelp } from "lucide-react";
+import { Edit, Plus, CheckCircle2, XCircle, Archive, RotateCcw, CircleHelp, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfirmModal } from "@/components/shared/confirm-modal";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -13,6 +13,7 @@ import { assignHelpRequest, resolveHelpRequest, rejectHelpRequest, reopenHelpReq
 import { helpRequestTypeOptions, helpRequestPriorityOptions, helpRequestStatusOptions } from "@/lib/crm/schemas";
 import type { Company, HelpRequest, TeamMemberOption } from "@/lib/crm/types";
 import { cn } from "@/lib/utils";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const STATUS_TABS = [
   { value: "all", label: "All" },
@@ -70,7 +71,7 @@ export function HelpRequestTable({
 
   return (
     <div className="space-y-4">
-      <form action={applyFilters} className="grid gap-3 rounded-lg border bg-white p-4 md:grid-cols-3 xl:grid-cols-6">
+      <form action={applyFilters} className="crm-filter-surface grid gap-3 md:grid-cols-3 xl:grid-cols-6">
         <InputLike name="search" placeholder="Search help requests..." defaultValue={searchParams.get("search") ?? ""} />
         <SelectLike
           name="company"
@@ -90,56 +91,65 @@ export function HelpRequestTable({
           label="Priority"
           options={helpRequestPriorityOptions.map((p) => [p, p.charAt(0).toUpperCase() + p.slice(1)])}
         />
-        <SelectLike
-          name="assignedTo"
-          defaultValue={searchParams.get("assignedTo") ?? ""}
-          label="Assigned To"
-          options={teamMembers.map((m) => [m.id, m.full_name ?? m.email])}
-        />
-        <SelectLike
-          name="requestedBy"
-          defaultValue={searchParams.get("requestedBy") ?? ""}
-          label="Requested By"
-          options={teamMembers.map((m) => [m.id, m.full_name ?? m.email])}
-        />
+        <details className="md:col-span-3 xl:col-span-2">
+          <summary className="crm-filter-summary">
+            More filters
+          </summary>
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <SelectLike
+              name="assignedTo"
+              defaultValue={searchParams.get("assignedTo") ?? ""}
+              label="Assigned To"
+              options={teamMembers.map((m) => [m.id, m.full_name ?? m.email])}
+            />
+            <SelectLike
+              name="requestedBy"
+              defaultValue={searchParams.get("requestedBy") ?? ""}
+              label="Requested By"
+              options={teamMembers.map((m) => [m.id, m.full_name ?? m.email])}
+            />
+          </div>
+        </details>
         <div className="md:col-span-3 xl:col-span-6 flex gap-2">
           <Button type="submit">Apply filters</Button>
           <Button type="button" variant="outline" onClick={() => router.push("/need-help")}>Reset</Button>
         </div>
       </form>
 
-      <div className="flex flex-wrap gap-1 rounded-lg border bg-white p-1">
+      <div className="rounded-2xl border border-slate-200 bg-white p-1 shadow-soft">
+        <div className="flex flex-wrap gap-1">
         {STATUS_TABS.map((tab) => (
           <button
             key={tab.value}
             type="button"
             onClick={() => applyTabFilter(tab.value)}
             className={cn(
-              "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+              "rounded-xl px-3 py-2 text-sm font-medium transition-colors",
               currentStatus === tab.value
                 ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
             )}
           >
             {tab.label}
           </button>
         ))}
+        </div>
       </div>
 
       {filteredRequests.length === 0 ? (
         <div className="space-y-4">
           <EmptyState
             title="No help requests found"
-            description="Create a new help request to get support from your team."
+            description="No support requests yet. Ask for help when a client needs pricing, technical, or management input."
             icon={CircleHelp}
-            actionLabel="New Help Request"
+            actionLabel="New Request"
             actionHref="/need-help/new"
           />
         </div>
       ) : (
         <div className="space-y-3 md:hidden">
           {filteredRequests.map((h) => (
-            <div key={h.id} className="rounded-lg border bg-white p-4">
+            <div key={h.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <p className="font-medium truncate">{h.title}</p>
@@ -154,20 +164,21 @@ export function HelpRequestTable({
                   {new Date(h.created_at).toLocaleDateString()}
                 </span>
               </div>
-              <div className="mt-3 flex gap-1 flex-wrap">
-                <Button asChild size="sm" variant="outline"><Link href={`/need-help/${h.id}`}>View</Link></Button>
-                {h.status === "open" && (
-                  <Button size="sm" onClick={() => { setAssignId(h.id); setAssignee(""); }}>Assign</Button>
-                )}
-                {h.status === "in_progress" && (
-                  <Button size="sm" onClick={() => setResolveId(h.id)}>Resolve</Button>
-                )}
-                {(h.status === "open" || h.status === "in_progress") && (
-                  <Button size="sm" variant="outline" onClick={() => setRejectId(h.id)}>Reject</Button>
-                )}
-                {(h.status === "resolved" || h.status === "rejected") && (
-                  <Button size="sm" variant="outline" onClick={() => setReopenId(h.id)}>Reopen</Button>
-                )}
+              <div className="mt-3 flex items-center gap-2">
+                <Button asChild size="sm" variant="outline" className="flex-1"><Link href={`/need-help/${h.id}`}>Open</Link></Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /><span className="sr-only">More actions</span></Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem asChild><Link href={`/need-help/${h.id}/edit`}><Edit className="mr-2 h-4 w-4" />Edit</Link></DropdownMenuItem>
+                    {h.status === "open" ? <DropdownMenuItem onClick={() => { setAssignId(h.id); setAssignee(""); }}><CheckCircle2 className="mr-2 h-4 w-4" />Assign</DropdownMenuItem> : null}
+                    {h.status === "in_progress" ? <DropdownMenuItem onClick={() => setResolveId(h.id)}><CheckCircle2 className="mr-2 h-4 w-4" />Resolve</DropdownMenuItem> : null}
+                    {(h.status === "open" || h.status === "in_progress") ? <DropdownMenuItem onClick={() => setRejectId(h.id)} className="text-rose-600"><XCircle className="mr-2 h-4 w-4" />Reject</DropdownMenuItem> : null}
+                    {(h.status === "resolved" || h.status === "rejected") ? <DropdownMenuItem onClick={() => setReopenId(h.id)}><RotateCcw className="mr-2 h-4 w-4" />Reopen</DropdownMenuItem> : null}
+                    {h.status !== "archived" ? <DropdownMenuItem onClick={() => setArchiveId(h.id)}><Archive className="mr-2 h-4 w-4" />Archive</DropdownMenuItem> : null}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           ))}
@@ -175,20 +186,20 @@ export function HelpRequestTable({
       )}
 
       {filteredRequests.length > 0 && (
-        <div className="hidden max-w-full overflow-hidden rounded-lg border bg-white md:block">
+        <div className="crm-table-shell hidden max-w-full md:block">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1200px] table-fixed text-left text-sm">
-              <thead className="border-b bg-muted/50 text-xs uppercase text-muted-foreground">
+            <table className="crm-table min-w-[980px] table-fixed">
+              <thead className="crm-table-head">
                 <tr>
                   <th className="w-[20%] px-4 py-3">Title</th>
                   <th className="w-[15%] px-4 py-3">Company</th>
                   <th className="w-[12%] px-4 py-3">Help Type</th>
                   <th className="w-[8%] px-4 py-3">Priority</th>
                   <th className="w-[10%] px-4 py-3">Requested By</th>
-                  <th className="w-[10%] px-4 py-3">Assigned To</th>
-                  <th className="w-[10%] px-4 py-3">Status</th>
-                  <th className="w-[10%] px-4 py-3">Created</th>
-                  <th className="w-[5%] px-4 py-3 text-right">Actions</th>
+                  <th className="w-[12%] px-4 py-3">Assigned To</th>
+                  <th className="w-[12%] px-4 py-3">Status</th>
+                  <th className="w-[11%] px-4 py-3">Created</th>
+                  <th className="w-[8%] px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -209,24 +220,21 @@ export function HelpRequestTable({
                       {new Date(h.created_at).toLocaleDateString()}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button asChild size="icon" variant="ghost" title="View Detail"><Link href={`/need-help/${h.id}`}><Eye className="h-4 w-4" /></Link></Button>
-                        <Button asChild size="icon" variant="ghost" title="Edit"><Link href={`/need-help/${h.id}/edit`}><Edit className="h-4 w-4" /></Link></Button>
-                        {h.status === "open" && (
-                          <Button size="icon" variant="ghost" title="Assign" onClick={() => { setAssignId(h.id); setAssignee(""); }}><CheckCircle2 className="h-4 w-4" /></Button>
-                        )}
-                        {h.status === "in_progress" && (
-                          <Button size="icon" variant="ghost" className="text-success hover:text-success hover:bg-success/10" title="Resolve" onClick={() => setResolveId(h.id)}><CheckCircle2 className="h-4 w-4" /></Button>
-                        )}
-                        {(h.status === "open" || h.status === "in_progress") && (
-                          <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive hover:bg-destructive/10" title="Reject" onClick={() => setRejectId(h.id)}><XCircle className="h-4 w-4" /></Button>
-                        )}
-                        {(h.status === "resolved" || h.status === "rejected") && (
-                          <Button size="icon" variant="ghost" title="Reopen" onClick={() => setReopenId(h.id)}><RotateCcw className="h-4 w-4" /></Button>
-                        )}
-                        {h.status !== "archived" && (
-                          <Button size="icon" variant="ghost" title="Archive" onClick={() => setArchiveId(h.id)}><Archive className="h-4 w-4" /></Button>
-                        )}
+                      <div className="flex justify-end gap-2">
+                        <Button asChild size="sm" variant="outline"><Link href={`/need-help/${h.id}`}>Open</Link></Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /><span className="sr-only">More actions</span></Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild><Link href={`/need-help/${h.id}/edit`}><Edit className="mr-2 h-4 w-4" />Edit</Link></DropdownMenuItem>
+                            {h.status === "open" ? <DropdownMenuItem onClick={() => { setAssignId(h.id); setAssignee(""); }}><CheckCircle2 className="mr-2 h-4 w-4" />Assign</DropdownMenuItem> : null}
+                            {h.status === "in_progress" ? <DropdownMenuItem onClick={() => setResolveId(h.id)}><CheckCircle2 className="mr-2 h-4 w-4" />Resolve</DropdownMenuItem> : null}
+                            {(h.status === "open" || h.status === "in_progress") ? <DropdownMenuItem onClick={() => setRejectId(h.id)} className="text-rose-600"><XCircle className="mr-2 h-4 w-4" />Reject</DropdownMenuItem> : null}
+                            {(h.status === "resolved" || h.status === "rejected") ? <DropdownMenuItem onClick={() => setReopenId(h.id)}><RotateCcw className="mr-2 h-4 w-4" />Reopen</DropdownMenuItem> : null}
+                            {h.status !== "archived" ? <DropdownMenuItem onClick={() => setArchiveId(h.id)}><Archive className="mr-2 h-4 w-4" />Archive</DropdownMenuItem> : null}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </td>
                   </tr>
@@ -256,7 +264,7 @@ export function HelpRequestTable({
         <div className="py-4">
           <label className="text-sm font-medium">Assign to</label>
           <select
-            className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm"
+            className="crm-filter-select mt-2"
             value={assignee}
             onChange={(e) => setAssignee(e.target.value)}
           >
@@ -336,7 +344,7 @@ export function HelpRequestTable({
 }
 
 function InputLike(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} className="h-10 rounded-md border bg-background px-3 text-sm" />;
+  return <input {...props} className="crm-filter-input" />;
 }
 
 function SelectLike({
@@ -345,7 +353,7 @@ function SelectLike({
   ...props
 }: React.SelectHTMLAttributes<HTMLSelectElement> & { label: string; options: string[][] }) {
   return (
-    <select {...props} className="h-10 rounded-md border bg-background px-3 text-sm">
+    <select {...props} className="crm-filter-select">
       <option value="">{label}</option>
       {options.map(([value, name]) => <option key={value} value={value}>{name}</option>)}
     </select>

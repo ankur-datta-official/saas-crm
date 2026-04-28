@@ -20,7 +20,7 @@ export default async function NewHelpRequestPage({
     <div className="container py-6">
       <PageHeader
         title="New Help Request"
-        description="Request help from your manager or support team."
+        description="Explain what help is needed first, then link related CRM records or assign ownership if useful."
       />
       <div className="mt-6 max-w-5xl">
         <Suspense fallback={<LoadingSkeleton />}>

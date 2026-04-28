@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { GuidanceStrip } from "@/components/shared/guidance-strip";
 import { InteractionTable } from "@/components/crm/interaction-table";
 import { PageHeader } from "@/components/shared/page-header";
 import { getCompanies, getContacts, getInteractions } from "@/lib/crm/queries";
@@ -18,9 +19,12 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
     <div>
       <PageHeader
         title="Meetings"
-        description="Log client calls, meetings, demos, and sales interactions."
-        actions={<Button asChild><Link href="/meetings/new"><Plus />Add Meeting</Link></Button>}
+        description="Log client conversations and turn discussions into next actions."
+        actions={<Button asChild><Link href="/meetings/new"><Plus />Log Meeting</Link></Button>}
       />
+      <GuidanceStrip>
+        Capture the discussion, next action, and follow-up date so your team always knows what happened and what comes next.
+      </GuidanceStrip>
       <InteractionTable interactions={interactions} companies={companies} contacts={contacts} />
     </div>
   );

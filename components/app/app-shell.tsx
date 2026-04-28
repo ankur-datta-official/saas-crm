@@ -26,7 +26,7 @@ export function AppShell({ children, profile, notifications, unreadNotificationC
           notifications={notifications}
           unreadNotificationCount={unreadNotificationCount}
         />
-        <main className="mx-auto w-full max-w-[1500px] flex-1 overflow-y-auto px-4 py-6 md:px-6 lg:px-8">{children}</main>
+        <main className="mx-auto w-full max-w-[1500px] min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-6 md:px-6 lg:px-8">{children}</main>
       </div>
     </div>
   );

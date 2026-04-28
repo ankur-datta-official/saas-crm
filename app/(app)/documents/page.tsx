@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { Plus, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { GuidanceStrip } from "@/components/shared/guidance-strip";
 import { PageHeader } from "@/components/shared/page-header";
 import { DocumentTable } from "@/components/crm/document-table";
 import { getDocuments } from "@/lib/crm/document-queries";
@@ -31,7 +32,7 @@ export default async function DocumentsPage({ searchParams }: PageProps) {
     <div className="space-y-6">
       <PageHeader
         title="Documents"
-        description="Manage company profiles, quotations, proposals, and other business documents."
+        description="Manage quotations, proposals, brochures, and submitted files."
         actions={
           <Button asChild>
             <Link href="/documents/new">
@@ -41,6 +42,9 @@ export default async function DocumentsPage({ searchParams }: PageProps) {
           </Button>
         }
       />
+      <GuidanceStrip>
+        Keep commercial files linked to the right company, meeting, or follow-up so your history stays easy to review.
+      </GuidanceStrip>
 
       <Suspense fallback={<LoadingSkeleton rows={5} />}>
         <DocumentListContainer filters={filters} />

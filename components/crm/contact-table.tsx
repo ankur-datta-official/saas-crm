@@ -4,13 +4,14 @@ import type React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Edit, Eye, Plus, Trash2 } from "lucide-react";
+import { Edit, MoreHorizontal, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfirmModal } from "@/components/shared/confirm-modal";
 import { EmptyState } from "@/components/shared/empty-state";
 import { DecisionRoleBadge } from "@/components/crm/decision-role-badge";
 import { PrimaryContactBadge } from "@/components/crm/primary-contact-badge";
 import { RelationshipLevelBadge } from "@/components/crm/relationship-level-badge";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { archiveContactAction } from "@/lib/crm/actions";
 import { decisionRoleOptions, preferredContactMethodOptions, relationshipLevelOptions } from "@/lib/crm/schemas";
 import type { Company, ContactPerson } from "@/lib/crm/types";
@@ -32,22 +33,30 @@ export function ContactTable({ contacts, companies }: { contacts: ContactPerson[
 
   return (
     <div className="space-y-4">
-      <form action={applyFilters} className="grid gap-3 rounded-lg border bg-white p-4 md:grid-cols-3 xl:grid-cols-6">
+      <form action={applyFilters} className="crm-filter-surface grid gap-3 md:grid-cols-3 xl:grid-cols-6">
         <InputLike name="search" placeholder="Search contacts..." defaultValue={searchParams.get("search") ?? ""} />
         <SelectLike name="company" defaultValue={searchParams.get("company") ?? ""} label="Company" options={companies.map((company) => [company.id, company.name])} />
         <SelectLike name="decisionRole" defaultValue={searchParams.get("decisionRole") ?? ""} label="Decision role" options={decisionRoleOptions.map((item) => [item, item])} />
-        <SelectLike name="relationshipLevel" defaultValue={searchParams.get("relationshipLevel") ?? ""} label="Relationship" options={relationshipLevelOptions.map((item) => [item, item])} />
-        <SelectLike name="preferredMethod" defaultValue={searchParams.get("preferredMethod") ?? ""} label="Method" options={preferredContactMethodOptions.map((item) => [item, item])} />
-        <SelectLike name="status" defaultValue={searchParams.get("status") ?? ""} label="Status" options={[["active", "Active"], ["inactive", "Inactive"]]} />
-        <div className="md:col-span-3 xl:col-span-6">
+        <details className="md:col-span-3 xl:col-span-3">
+          <summary className="crm-filter-summary">
+            More filters
+          </summary>
+          <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <SelectLike name="relationshipLevel" defaultValue={searchParams.get("relationshipLevel") ?? ""} label="Relationship" options={relationshipLevelOptions.map((item) => [item, item])} />
+            <SelectLike name="preferredMethod" defaultValue={searchParams.get("preferredMethod") ?? ""} label="Method" options={preferredContactMethodOptions.map((item) => [item, item])} />
+            <SelectLike name="status" defaultValue={searchParams.get("status") ?? ""} label="Status" options={[["active", "Active"], ["inactive", "Inactive"]]} />
+          </div>
+        </details>
+        <div className="md:col-span-3 xl:col-span-6 flex flex-wrap gap-2">
           <Button type="submit">Apply filters</Button>
+          <Button type="button" variant="outline" onClick={() => router.push("/contacts")}>Reset</Button>
         </div>
       </form>
 
       {contacts.length === 0 ? (
         <EmptyState
-          title="No contacts added yet"
-          description="Add your first decision maker."
+          title="No contacts yet"
+          description="No contacts yet. Add decision makers under your companies."
           icon={Plus}
           actionLabel="Add Contact"
           actionHref="/contacts/new"
@@ -55,7 +64,7 @@ export function ContactTable({ contacts, companies }: { contacts: ContactPerson[
       ) : (
         <div className="space-y-3 md:hidden">
           {contacts.map((contact) => (
-            <div key={contact.id} className="rounded-lg border bg-white p-4">
+            <div key={contact.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="truncate font-medium">{contact.name}</p>
@@ -67,9 +76,17 @@ export function ContactTable({ contacts, companies }: { contacts: ContactPerson[
                 <DecisionRoleBadge role={contact.decision_role} />
                 <RelationshipLevelBadge level={contact.relationship_level} />
               </div>
-              <div className="mt-3 flex gap-1">
-                <Button asChild size="sm" variant="outline"><Link href={`/contacts/${contact.id}`}>View</Link></Button>
-                <Button asChild size="sm" variant="ghost"><Link href={`/contacts/${contact.id}/edit`}>Edit</Link></Button>
+              <div className="mt-3 flex items-center gap-2">
+                <Button asChild size="sm" variant="outline" className="flex-1"><Link href={`/contacts/${contact.id}`}>Open</Link></Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="icon" variant="ghost"><MoreHorizontal /><span className="sr-only">More actions</span></Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem asChild><Link href={`/contacts/${contact.id}/edit`}><Edit className="mr-2 h-4 w-4" />Edit</Link></DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setArchiveId(contact.id)} className="text-rose-600"><Trash2 className="mr-2 h-4 w-4" />Archive</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           ))}
@@ -77,10 +94,10 @@ export function ContactTable({ contacts, companies }: { contacts: ContactPerson[
       )}
 
       {contacts.length > 0 ? (
-        <div className="hidden max-w-full overflow-hidden rounded-lg border bg-white md:block">
+        <div className="crm-table-shell hidden max-w-full md:block">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[860px] table-fixed text-left text-sm">
-              <thead className="border-b bg-muted/50 text-xs uppercase text-muted-foreground">
+            <table className="crm-table min-w-[820px] table-fixed">
+              <thead className="crm-table-head">
                 <tr>
                   <th className="w-[16%] px-4 py-3">Contact Name</th>
                   <th className="w-[15%] px-4 py-3">Company</th>
@@ -95,20 +112,27 @@ export function ContactTable({ contacts, companies }: { contacts: ContactPerson[
               </thead>
               <tbody>
                 {contacts.map((contact) => (
-                  <tr key={contact.id} className="border-b last:border-0">
-                    <td className="truncate px-4 py-3 font-medium">{contact.name}</td>
-                    <td className="truncate px-4 py-3">{contact.companies?.name ?? "-"}</td>
-                    <td className="truncate px-4 py-3">{contact.designation ?? "-"}</td>
-                    <td className="px-4 py-3"><DecisionRoleBadge role={contact.decision_role} /></td>
-                    <td className="truncate px-4 py-3">{contact.mobile ?? "-"}</td>
-                    <td className="truncate px-4 py-3">{contact.email ?? "-"}</td>
-                    <td className="px-4 py-3"><RelationshipLevelBadge level={contact.relationship_level} /></td>
-                    <td className="px-4 py-3"><PrimaryContactBadge primary={contact.is_primary} /></td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-1">
-                        <Button asChild size="icon" variant="ghost"><Link href={`/contacts/${contact.id}`}><Eye /><span className="sr-only">View</span></Link></Button>
-                        <Button asChild size="icon" variant="ghost"><Link href={`/contacts/${contact.id}/edit`}><Edit /><span className="sr-only">Edit</span></Link></Button>
-                        <Button size="icon" variant="ghost" onClick={() => setArchiveId(contact.id)}><Trash2 /><span className="sr-only">Archive</span></Button>
+                  <tr key={contact.id} className="border-b border-border/80 last:border-0 transition-colors hover:bg-slate-50/80">
+                    <td className="crm-table-cell truncate font-medium text-slate-900">{contact.name}</td>
+                    <td className="crm-table-cell truncate">{contact.companies?.name ?? "-"}</td>
+                    <td className="crm-table-cell truncate">{contact.designation ?? "-"}</td>
+                    <td className="crm-table-cell"><DecisionRoleBadge role={contact.decision_role} /></td>
+                    <td className="crm-table-cell truncate">{contact.mobile ?? "-"}</td>
+                    <td className="crm-table-cell truncate">{contact.email ?? "-"}</td>
+                    <td className="crm-table-cell"><RelationshipLevelBadge level={contact.relationship_level} /></td>
+                    <td className="crm-table-cell"><PrimaryContactBadge primary={contact.is_primary} /></td>
+                    <td className="crm-table-cell">
+                      <div className="flex items-center gap-2">
+                        <Button asChild size="sm" variant="outline"><Link href={`/contacts/${contact.id}`}>Open</Link></Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="icon" variant="ghost"><MoreHorizontal /><span className="sr-only">More actions</span></Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild><Link href={`/contacts/${contact.id}/edit`}><Edit className="mr-2 h-4 w-4" />Edit</Link></DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setArchiveId(contact.id)} className="text-rose-600"><Trash2 className="mr-2 h-4 w-4" />Archive</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </td>
                   </tr>
@@ -140,7 +164,7 @@ export function ContactTable({ contacts, companies }: { contacts: ContactPerson[
 }
 
 function InputLike(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} className="h-10 rounded-md border bg-background px-3 text-sm" />;
+  return <input {...props} className="crm-filter-input" />;
 }
 
 function SelectLike({
@@ -149,7 +173,7 @@ function SelectLike({
   ...props
 }: React.SelectHTMLAttributes<HTMLSelectElement> & { label: string; options: string[][] }) {
   return (
-    <select {...props} className="h-10 rounded-md border bg-background px-3 text-sm">
+    <select {...props} className="crm-filter-select">
       <option value="">{label}</option>
       {options.map(([value, name]) => <option key={value} value={value}>{name}</option>)}
     </select>

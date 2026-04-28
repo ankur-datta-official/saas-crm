@@ -18,7 +18,7 @@ export default async function EditCompanyPage({ params }: { params: Promise<{ id
     <div>
       <PageHeader
         title="Edit Company"
-        description="Update company details, qualification, ownership, and pipeline status."
+        description="Update company details, ownership, and pipeline progress without losing the existing CRM history."
       />
       <CompanyForm company={company} {...options} />
     </div>

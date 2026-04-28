@@ -11,7 +11,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
               Client Relationship & Meeting Management CRM
             </h1>
             <p className="mt-4 max-w-lg text-base text-muted-foreground">
-              A clean enterprise foundation for leads, meetings, follow-ups, documents, reporting, and team performance.
+              A clean enterprise workspace for leads, meetings, follow-ups, documents, reporting, and team performance.
             </p>
           </div>
           <div className="grid grid-cols-3 gap-3">

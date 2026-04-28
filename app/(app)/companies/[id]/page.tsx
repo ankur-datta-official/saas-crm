@@ -44,7 +44,7 @@ export default async function CompanyProfilePage({ params }: { params: Promise<{
       <Card>
         <CardHeader>
           <CardTitle>Overview</CardTitle>
-          <CardDescription>Base company profile information for this sprint.</CardDescription>
+          <CardDescription>Core company profile information, ownership, and relationship details.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
           <Info label="Email" value={company.email} />
@@ -201,7 +201,7 @@ export default async function CompanyProfilePage({ params }: { params: Promise<{
       </Card>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-2">
-        <EmptyState title="Activity Log" description="Audit records are being captured and can be surfaced later." icon={NotebookTabs} />
+        <EmptyState title="Activity Log" description="Recent company activity and audit history will appear here when records are available." icon={NotebookTabs} />
       </section>
     </div>
   );

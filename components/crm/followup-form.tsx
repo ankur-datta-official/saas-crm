@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FormActionBar, FormContextHint, FormRequiredNote } from "@/components/shared/form-helpers";
 import { createFollowup, updateFollowup } from "@/lib/crm/followup-actions";
 import { followupSchema, followupTypeOptions, followupPriorityOptions, followupStatusOptions } from "@/lib/crm/schemas";
 import type { Company, ContactPerson, Interaction, Followup, TeamMemberOption } from "@/lib/crm/types";
@@ -47,7 +48,7 @@ export function FollowupForm({
     defaultValues: {
       company_id: followup?.company_id ?? defaultCompanyId ?? "",
       title: followup?.title ?? "",
-      scheduled_at: followup?.scheduled_at ? followup.scheduled_at.slice(0, 16) : "",
+      scheduled_at: followup?.scheduled_at ? followup.scheduled_at.slice(0, 16) : getLocalDateTimeValue(),
       contact_person_id: followup?.contact_person_id ?? defaultContactId ?? "",
       interaction_id: followup?.interaction_id ?? defaultInteractionId ?? "",
       assigned_user_id: followup?.assigned_user_id ?? "",
@@ -90,7 +91,7 @@ export function FollowupForm({
         form.reset({
           company_id: values.company_id,
           title: "",
-          scheduled_at: "",
+          scheduled_at: getLocalDateTimeValue(),
           contact_person_id: "",
           interaction_id: "",
           assigned_user_id: "",
@@ -111,9 +112,10 @@ export function FollowupForm({
 
   return (
     <form className="space-y-5" onSubmit={form.handleSubmit((values) => onSubmit(values, "save"))}>
-      <p className="rounded-md border bg-white p-3 text-sm text-muted-foreground">
-        Only company, title, and schedule are required. You can add more details later.
-      </p>
+      <FormRequiredNote message="Company, title, and scheduled date are required. Use the optional sections only when you need to connect the follow-up to a person, meeting, or reminder setup." />
+      {(defaultCompanyId || defaultContactId || defaultInteractionId) && !followup ? (
+        <FormContextHint message="This follow-up was opened from an existing CRM record, so related context has been preselected where possible." />
+      ) : null}
 
       <FormSection title="Basic Information" description="Core follow-up context and timing.">
         <SelectField
@@ -204,7 +206,7 @@ export function FollowupForm({
           <textarea
             id="description"
             {...form.register("description")}
-            className="min-h-32 w-full rounded-md border bg-background px-3 py-2 text-sm"
+            className="min-h-32 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm"
             placeholder="Add specific details about what needs to be discussed or achieved."
           />
         </div>
@@ -213,7 +215,10 @@ export function FollowupForm({
       {serverError && <p className="rounded-md bg-rose-50 p-3 text-sm text-rose-700">{serverError}</p>}
       {successMessage && <p className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">{successMessage}</p>}
 
-      <div className="flex flex-wrap gap-2">
+      <FormActionBar>
+        <Button asChild variant="outline">
+          <Link href={followup ? `/followups/${followup.id}` : "/followups"}>Cancel</Link>
+        </Button>
         <Button type="submit" disabled={isPending}>
           <Save className="mr-2 h-4 w-4" />
           {followup ? "Update follow-up" : "Save"}
@@ -228,10 +233,7 @@ export function FollowupForm({
             Save & Add Another
           </Button>
         )}
-        <Button asChild variant="outline">
-          <Link href={followup ? `/followups/${followup.id}` : "/followups"}>Cancel</Link>
-        </Button>
-      </div>
+      </FormActionBar>
     </form>
   );
 }
@@ -260,10 +262,17 @@ function CollapsibleSection({
   columns?: string;
 }) {
   return (
-    <details className="rounded-lg border bg-card shadow-soft" open={false}>
+    <details className="rounded-xl border bg-card shadow-soft" open={false}>
       <summary className="cursor-pointer list-none p-5">
-        <h3 className="font-semibold">{title}</h3>
-        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="font-semibold">{title}</h3>
+            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+          </div>
+          <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
+            Optional
+          </span>
+        </div>
       </summary>
       <div className={`grid gap-4 p-5 pt-0 ${columns}`}>{children}</div>
     </details>
@@ -296,10 +305,16 @@ function SelectField({
         {label}
         {required && <span className="text-destructive"> *</span>}
       </Label>
-      <select {...props} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
+      <select {...props} className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm shadow-sm">
         {children}
       </select>
       {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   );
+}
+
+function getLocalDateTimeValue() {
+  const now = new Date();
+  const offset = now.getTimezoneOffset();
+  return new Date(now.getTime() - offset * 60_000).toISOString().slice(0, 16);
 }

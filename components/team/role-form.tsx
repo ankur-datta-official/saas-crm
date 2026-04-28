@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FormRequiredNote } from "@/components/shared/form-helpers";
 import { createRole, updateRole } from "@/lib/team/team-actions";
 import type { RoleWithPermissions } from "@/lib/team/types";
 
@@ -53,6 +54,7 @@ export function RoleForm({ selectedRole, canManage, onSaved }: RoleFormProps) {
           {selectedRole ? "Rename or describe a selected custom role." : "Create a custom team role for your organization."}
         </p>
       </div>
+      <FormRequiredNote message="Only the role name is required. Add a short description if you want other admins to understand when this role should be used." />
       {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{error}</div> : null}
       <div className="space-y-2">
         <Label htmlFor="role-name">Role Name</Label>

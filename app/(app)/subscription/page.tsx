@@ -1,5 +1,6 @@
 import { type LucideIcon, Users, Building2, HardDriveDownload, FileStack } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
+import { GuidanceStrip } from "@/components/shared/guidance-strip";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlanUsageCard } from "@/components/subscription/plan-usage-card";
 import { SubscriptionPlanCard } from "@/components/subscription/subscription-plan-card";
@@ -42,6 +43,9 @@ export default async function SubscriptionPage() {
         title="Subscription"
         description="Review plan packaging, workspace usage, limits, and feature availability."
       />
+      <GuidanceStrip>
+        Review your current plan, usage limits, and feature access here. Manual plan switching is only for internal testing when enabled.
+      </GuidanceStrip>
 
       {!canManage ? (
         <UpgradePrompt
@@ -127,7 +131,9 @@ export default async function SubscriptionPage() {
       <section className="space-y-4">
         <div>
           <h2 className="text-xl font-semibold">Available Plans</h2>
-          <p className="text-sm text-muted-foreground">No payment gateway is connected yet. Use manual switching only for internal testing.</p>
+          <p className="text-sm text-muted-foreground">
+            Compare plan limits and features below. Manual switching is for internal testing until billing automation is connected.
+          </p>
         </div>
         <div className="grid gap-4 xl:grid-cols-4">
           {plans.map((plan) => (

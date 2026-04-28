@@ -16,7 +16,7 @@ export default async function NewContactPage({
     <div>
       <PageHeader
         title="Add Contact"
-        description="Create a contact person for a company lead."
+        description="Add a decision maker or stakeholder under the right company so meetings and follow-ups stay connected."
       />
       <ContactForm companies={options.companies} defaultCompanyId={companyId} />
     </div>

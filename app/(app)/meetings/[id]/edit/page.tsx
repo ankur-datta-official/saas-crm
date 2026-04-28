@@ -9,7 +9,7 @@ export default async function EditMeetingPage({ params }: { params: Promise<{ id
   if (!interaction) notFound();
   return (
     <div>
-      <PageHeader title="Edit Meeting" description="Update interaction notes, ratings, next action, and follow-up timing." />
+      <PageHeader title="Edit Meeting" description="Update discussion notes, next action, and meeting context while keeping the original conversation history intact." />
       <InteractionForm interaction={interaction} {...options} />
     </div>
   );

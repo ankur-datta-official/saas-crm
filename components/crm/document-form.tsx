@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FormActionBar, FormContextHint, FormRequiredNote } from "@/components/shared/form-helpers";
 import { documentSchema, type DocumentFormValues, documentTypeOptions, documentStatusOptions } from "@/lib/crm/schemas";
 import type { Document, Company, ContactPerson, Interaction, Followup } from "@/lib/crm/types";
 import { createDocument, updateDocument } from "@/lib/crm/document-actions";
@@ -135,11 +136,12 @@ export function DocumentForm({
 
   return (
     <form className="space-y-5" onSubmit={form.handleSubmit((values) => onSubmit(values, "save"))}>
-      <p className="rounded-md border bg-white p-3 text-sm text-muted-foreground">
-        Only company, title, type, and file are required. You can add more details later.
-      </p>
+      <FormRequiredNote message="Company, document title, type, and a file are required for new uploads. Everything else is optional metadata you can return to later." />
+      {(initialCompanyId || initialContactId || initialInteractionId || initialFollowupId) && !document ? (
+        <FormContextHint message="This upload was opened from existing CRM context, so related records are preselected where possible." />
+      ) : null}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-5">
           <FormSection title="Basic Information" description="Document identity and core details.">
             <SelectField
@@ -174,7 +176,7 @@ export function DocumentForm({
               <textarea
                 id="description"
                 {...form.register("description")}
-                className="min-h-20 w-full rounded-md border bg-background px-3 py-2 text-sm"
+                className="min-h-20 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm"
                 placeholder="Briefly describe what this document is about..."
               />
             </div>
@@ -250,7 +252,7 @@ export function DocumentForm({
               <textarea
                 id="remarks"
                 {...form.register("remarks")}
-                className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm"
+                className="min-h-24 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm"
                 placeholder="Internal notes, revision history, or special instructions..."
               />
             </div>
@@ -279,7 +281,10 @@ export function DocumentForm({
       {serverError ? <p className="rounded-md bg-rose-50 p-3 text-sm text-rose-700">{serverError}</p> : null}
       {successMessage ? <p className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">{successMessage}</p> : null}
 
-      <div className="flex flex-wrap gap-2">
+      <FormActionBar>
+        <Button asChild variant="outline">
+          <Link href={document ? `/documents/${document.id}` : "/documents"}>Cancel</Link>
+        </Button>
         <Button type="submit" disabled={isPending || form.formState.isSubmitting}>
           <Save className="w-4 h-4 mr-2" />
           {document ? "Update Document" : "Upload Document"}
@@ -295,10 +300,7 @@ export function DocumentForm({
             Save & Add Another
           </Button>
         )}
-        <Button asChild variant="outline">
-          <Link href={document ? `/documents/${document.id}` : "/documents"}>Cancel</Link>
-        </Button>
-      </div>
+      </FormActionBar>
     </form>
   );
 }
@@ -337,10 +339,17 @@ function CollapsibleSection({
   columns?: string;
 }) {
   return (
-    <details className="rounded-lg border bg-card text-card-foreground shadow-sm">
+    <details className="rounded-xl border bg-card text-card-foreground shadow-sm">
       <summary className="cursor-pointer list-none p-5">
-        <h3 className="text-base font-semibold">{title}</h3>
-        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-base font-semibold">{title}</h3>
+            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+          </div>
+          <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
+            Optional
+          </span>
+        </div>
       </summary>
       <div className={`grid gap-4 p-5 pt-0 ${columns}`}>{children}</div>
     </details>
@@ -367,7 +376,7 @@ function SelectField({
   return (
     <div className="space-y-2">
       <Label>{label}{required ? <span className="text-destructive"> *</span> : null}</Label>
-      <select {...props} className="h-10 w-full rounded-md border bg-background px-3 text-sm disabled:opacity-50">
+      <select {...props} className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm shadow-sm disabled:opacity-50">
         {children}
       </select>
       {error ? <p className="text-xs text-destructive">{error}</p> : null}

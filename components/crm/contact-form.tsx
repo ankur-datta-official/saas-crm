@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FormActionBar, FormContextHint, FormRequiredNote } from "@/components/shared/form-helpers";
 import {
   contactPersonSchema,
   decisionRoleOptions,
@@ -45,7 +46,7 @@ export function ContactForm({ contact, companies, defaultCompanyId }: ContactFor
       linkedin: contact?.linkedin ?? "",
       decision_role: contact?.decision_role ?? "",
       relationship_level: contact?.relationship_level ?? "",
-      preferred_contact_method: contact?.preferred_contact_method ?? "",
+      preferred_contact_method: contact?.preferred_contact_method ?? "Phone",
       remarks: contact?.remarks ?? "",
       is_primary: contact?.is_primary ?? false,
       status: contact?.status ?? "active",
@@ -75,7 +76,7 @@ export function ContactForm({ contact, companies, defaultCompanyId }: ContactFor
           linkedin: "",
           decision_role: "",
           relationship_level: "",
-          preferred_contact_method: "",
+          preferred_contact_method: "Phone",
           remarks: "",
           is_primary: false,
           status: "active",
@@ -91,9 +92,10 @@ export function ContactForm({ contact, companies, defaultCompanyId }: ContactFor
 
   return (
     <form className="space-y-5" onSubmit={form.handleSubmit((values) => onSubmit(values, "save"))}>
-      <p className="rounded-md border bg-white p-3 text-sm text-muted-foreground">
-        Only basic information is required. You can add more details later.
-      </p>
+      <FormRequiredNote message="Add the contact name and linked company first. You can fill in communication preferences, relationship details, and remarks later." />
+      {defaultCompanyId && !contact ? (
+        <FormContextHint message="This contact is being added from a company context, so the company is preselected for faster entry." />
+      ) : null}
       <FormSection title="Basic Information" description="Contact identity and company placement.">
         <Field label="Name" required error={form.formState.errors.name?.message}><Input {...form.register("name")} /></Field>
         <SelectField label="Company" required error={form.formState.errors.company_id?.message} {...form.register("company_id")}>
@@ -134,13 +136,16 @@ export function ContactForm({ contact, companies, defaultCompanyId }: ContactFor
         </label>
         <div className="md:col-span-2 xl:col-span-4">
           <Label htmlFor="remarks">Remarks</Label>
-          <textarea id="remarks" {...form.register("remarks")} className="mt-2 min-h-28 w-full rounded-md border bg-background px-3 py-2 text-sm" />
+          <textarea id="remarks" {...form.register("remarks")} className="mt-2 min-h-28 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm" />
         </div>
       </CollapsibleSection>
 
       {serverError ? <p className="rounded-md bg-rose-50 p-3 text-sm text-rose-700">{serverError}</p> : null}
       {successMessage ? <p className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">{successMessage}</p> : null}
-      <div className="flex flex-wrap gap-2">
+      <FormActionBar>
+        <Button asChild variant="outline">
+          <Link href={contact ? `/contacts/${contact.id}` : "/contacts"}>Cancel</Link>
+        </Button>
         <Button type="submit" disabled={isPending || form.formState.isSubmitting}>
           <Save />
           {contact ? "Update contact" : "Save"}
@@ -155,10 +160,7 @@ export function ContactForm({ contact, companies, defaultCompanyId }: ContactFor
             Save & Add Another
           </Button>
         ) : null}
-        <Button asChild variant="outline">
-          <Link href={contact ? `/contacts/${contact.id}` : "/contacts"}>Cancel</Link>
-        </Button>
-      </div>
+      </FormActionBar>
     </form>
   );
 }
@@ -177,10 +179,17 @@ function FormSection({ title, description, children }: { title: string; descript
 
 function CollapsibleSection({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
   return (
-    <details className="rounded-lg border bg-card text-card-foreground shadow-soft">
+    <details className="rounded-xl border bg-card text-card-foreground shadow-soft">
       <summary className="cursor-pointer list-none p-5">
-        <h3 className="text-base font-semibold">{title}</h3>
-        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-base font-semibold">{title}</h3>
+            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+          </div>
+          <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
+            Optional
+          </span>
+        </div>
       </summary>
       <div className="grid gap-4 p-5 pt-0 md:grid-cols-2 xl:grid-cols-4">{children}</div>
     </details>
@@ -207,7 +216,7 @@ function SelectField({
   return (
     <div className="space-y-2">
       <Label>{label}{required ? <span className="text-destructive"> *</span> : null}</Label>
-      <select {...props} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
+      <select {...props} className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm shadow-sm">
         {children}
       </select>
       {error ? <p className="text-xs text-destructive">{error}</p> : null}

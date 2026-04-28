@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Calendar, User, Building2, Layers, Thermometer, Tag, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -73,7 +72,8 @@ export function ReportFilterBar({ users, industries, stages, categories }: Repor
   };
 
   return (
-    <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-4 shadow-sm print:hidden">
+    <div className="crm-filter-surface print:hidden">
+      <div className="flex flex-wrap items-end gap-3">
       <div className="space-y-1.5">
         <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
           <Calendar className="size-3.5" /> Date Range
@@ -88,7 +88,7 @@ export function ReportFilterBar({ users, industries, stages, categories }: Repor
             <SelectItem value="this_month">This Month</SelectItem>
             <SelectItem value="last_30_days">Last 30 Days</SelectItem>
             <SelectItem value="this_quarter">This Quarter</SelectItem>
-            <SelectItem value="custom" disabled>Custom (Coming Soon)</SelectItem>
+            <SelectItem value="custom" disabled>Custom range</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -131,62 +131,6 @@ export function ReportFilterBar({ users, industries, stages, categories }: Repor
         </Select>
       </div>
 
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-          <Layers className="size-3.5" /> Pipeline Stage
-        </label>
-        <Select value={pipelineStageId} onValueChange={setPipelineStageId}>
-          <SelectTrigger className="w-[160px] h-9 text-xs">
-            <SelectValue placeholder="All Stages" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Stages</SelectItem>
-            {stages.map((stage) => (
-              <SelectItem key={stage.id} value={stage.id}>
-                {stage.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-          <Thermometer className="size-3.5" /> Temperature
-        </label>
-        <Select value={leadTemperature} onValueChange={setLeadTemperature}>
-          <SelectTrigger className="w-[140px] h-9 text-xs">
-            <SelectValue placeholder="All" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="cold">Cold</SelectItem>
-            <SelectItem value="warm">Warm</SelectItem>
-            <SelectItem value="hot">Hot</SelectItem>
-            <SelectItem value="very_hot">Very Hot</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-          <Tag className="size-3.5" /> Category
-        </label>
-        <Select value={companyCategoryId} onValueChange={setCompanyCategoryId}>
-          <SelectTrigger className="w-[140px] h-9 text-xs">
-            <SelectValue placeholder="All" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            {categories.map((category) => (
-              <SelectItem key={category.id} value={category.id}>
-                {category.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
       <div className="flex items-center gap-2">
         <Button onClick={applyFilters} size="sm" className="h-9 px-4">
           <Search className="mr-2 size-3.5" /> Filter
@@ -195,6 +139,70 @@ export function ReportFilterBar({ users, industries, stages, categories }: Repor
           <X className="mr-2 size-3.5" /> Reset
         </Button>
       </div>
+      </div>
+
+      <details className="mt-4">
+        <summary className="cursor-pointer list-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700">
+          More filters
+        </summary>
+        <div className="mt-3 flex flex-wrap items-end gap-3">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+              <Layers className="size-3.5" /> Pipeline Stage
+            </label>
+            <Select value={pipelineStageId} onValueChange={setPipelineStageId}>
+              <SelectTrigger className="w-[160px] h-9 text-xs">
+                <SelectValue placeholder="All Stages" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Stages</SelectItem>
+                {stages.map((stage) => (
+                  <SelectItem key={stage.id} value={stage.id}>
+                    {stage.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+              <Thermometer className="size-3.5" /> Temperature
+            </label>
+            <Select value={leadTemperature} onValueChange={setLeadTemperature}>
+              <SelectTrigger className="w-[140px] h-9 text-xs">
+                <SelectValue placeholder="All" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="cold">Cold</SelectItem>
+                <SelectItem value="warm">Warm</SelectItem>
+                <SelectItem value="hot">Hot</SelectItem>
+                <SelectItem value="very_hot">Very Hot</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+              <Tag className="size-3.5" /> Category
+            </label>
+            <Select value={companyCategoryId} onValueChange={setCompanyCategoryId}>
+              <SelectTrigger className="w-[140px] h-9 text-xs">
+                <SelectValue placeholder="All" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </details>
     </div>
   );
 }

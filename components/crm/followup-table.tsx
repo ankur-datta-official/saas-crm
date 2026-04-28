@@ -4,7 +4,7 @@ import type React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Edit, Eye, Plus, CheckCircle2, XCircle, Archive, Calendar } from "lucide-react";
+import { Edit, Plus, CheckCircle2, XCircle, Archive, Calendar, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfirmModal } from "@/components/shared/confirm-modal";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -13,6 +13,7 @@ import { completeFollowup, cancelFollowup, archiveFollowup } from "@/lib/crm/fol
 import { followupTypeOptions, followupPriorityOptions, followupStatusOptions } from "@/lib/crm/schemas";
 import type { Company, Followup, TeamMemberOption } from "@/lib/crm/types";
 import { cn } from "@/lib/utils";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export function FollowupTable({
   followups,
@@ -46,7 +47,7 @@ export function FollowupTable({
 
   return (
     <div className="space-y-4">
-      <form action={applyFilters} className="grid gap-3 rounded-lg border bg-white p-4 md:grid-cols-3 xl:grid-cols-6">
+      <form action={applyFilters} className="crm-filter-surface grid gap-3 md:grid-cols-3 xl:grid-cols-6">
         <InputLike name="search" placeholder="Search follow-ups..." defaultValue={searchParams.get("search") ?? ""} />
         <SelectLike
           name="company"
@@ -66,18 +67,25 @@ export function FollowupTable({
           label="Priority"
           options={followupPriorityOptions.map((p) => [p, p.charAt(0).toUpperCase() + p.slice(1)])}
         />
-        <SelectLike
-          name="status"
-          defaultValue={searchParams.get("status") ?? ""}
-          label="Status"
-          options={followupStatusOptions.map((s) => [s, s.charAt(0).toUpperCase() + s.slice(1)])}
-        />
-        <SelectLike
-          name="assigned"
-          defaultValue={searchParams.get("assigned") ?? ""}
-          label="Assigned"
-          options={teamMembers.map((m) => [m.id, m.full_name ?? m.email])}
-        />
+        <details className="md:col-span-3 xl:col-span-3">
+          <summary className="crm-filter-summary">
+            More filters
+          </summary>
+          <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <SelectLike
+              name="status"
+              defaultValue={searchParams.get("status") ?? ""}
+              label="Status"
+              options={followupStatusOptions.map((s) => [s, s.charAt(0).toUpperCase() + s.slice(1)])}
+            />
+            <SelectLike
+              name="assigned"
+              defaultValue={searchParams.get("assigned") ?? ""}
+              label="Assigned"
+              options={teamMembers.map((m) => [m.id, m.full_name ?? m.email])}
+            />
+          </div>
+        </details>
         <div className="md:col-span-3 xl:col-span-6 flex gap-2">
           <Button type="submit">Apply filters</Button>
           <Button type="button" variant="outline" onClick={() => router.push("/followups")}>Reset</Button>
@@ -85,11 +93,11 @@ export function FollowupTable({
       </form>
 
       {followups.length === 0 ? (
-        <EmptyState title="No follow-ups found" description="Schedule a new follow-up to keep the momentum." icon={Calendar} actionLabel="Add Follow-up" actionHref="/followups/new" />
+        <EmptyState title="No follow-ups scheduled" description="Create next actions so no client is missed." icon={Calendar} actionLabel="Create Follow-up" actionHref="/followups/new" />
       ) : (
         <div className="space-y-3 md:hidden">
           {followups.map((f) => (
-            <div key={f.id} className={cn("rounded-lg border bg-white p-4", isOverdue(f) && "border-destructive/30 bg-destructive/5")}>
+            <div key={f.id} className={cn("rounded-2xl border border-slate-200 bg-white p-4 shadow-soft", isOverdue(f) && "border-destructive/30 bg-destructive/5")}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
@@ -108,11 +116,19 @@ export function FollowupTable({
                   {new Date(f.scheduled_at).toLocaleString()}
                 </span>
               </div>
-              <div className="mt-3 flex gap-1">
-                <Button asChild size="sm" variant="outline"><Link href={`/followups/${f.id}`}>View</Link></Button>
-                {f.status === "pending" && (
-                  <Button size="sm" onClick={() => setCompleteId(f.id)}>Complete</Button>
-                )}
+              <div className="mt-3 flex items-center gap-2">
+                <Button asChild size="sm" variant="outline" className="flex-1"><Link href={`/followups/${f.id}`}>Open</Link></Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /><span className="sr-only">More actions</span></Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem asChild><Link href={`/followups/${f.id}/edit`}><Edit className="mr-2 h-4 w-4" />Edit</Link></DropdownMenuItem>
+                    {f.status === "pending" ? <DropdownMenuItem onClick={() => setCompleteId(f.id)}><CheckCircle2 className="mr-2 h-4 w-4" />Complete</DropdownMenuItem> : null}
+                    {f.status === "pending" ? <DropdownMenuItem onClick={() => setCancelId(f.id)} className="text-rose-600"><XCircle className="mr-2 h-4 w-4" />Cancel</DropdownMenuItem> : null}
+                    {f.status !== "archived" ? <DropdownMenuItem onClick={() => setArchiveId(f.id)}><Archive className="mr-2 h-4 w-4" />Archive</DropdownMenuItem> : null}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           ))}
@@ -120,19 +136,19 @@ export function FollowupTable({
       )}
 
       {followups.length > 0 && (
-        <div className="hidden max-w-full overflow-hidden rounded-lg border bg-white md:block">
+        <div className="crm-table-shell hidden max-w-full md:block">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1000px] table-fixed text-left text-sm">
-              <thead className="border-b bg-muted/50 text-xs uppercase text-muted-foreground">
+            <table className="crm-table min-w-[880px] table-fixed">
+              <thead className="crm-table-head">
                 <tr>
                   <th className="w-[15%] px-4 py-3">Scheduled</th>
                   <th className="w-[20%] px-4 py-3">Title</th>
                   <th className="w-[15%] px-4 py-3">Company</th>
                   <th className="w-[12%] px-4 py-3">Type</th>
                   <th className="w-[10%] px-4 py-3">Priority</th>
-                  <th className="w-[10%] px-4 py-3">Assigned To</th>
-                  <th className="w-[10%] px-4 py-3">Status</th>
-                  <th className="w-[8%] px-4 py-3 text-right">Actions</th>
+                  <th className="w-[13%] px-4 py-3">Assigned To</th>
+                  <th className="w-[11%] px-4 py-3">Status</th>
+                  <th className="w-[9%] px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -157,18 +173,19 @@ export function FollowupTable({
                     </td>
                     <td className="px-4 py-3"><FollowupStatusBadge status={f.status} /></td>
                     <td className="px-4 py-3 text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button asChild size="icon" variant="ghost" title="View Detail"><Link href={`/followups/${f.id}`}><Eye className="h-4 w-4" /></Link></Button>
-                        <Button asChild size="icon" variant="ghost" title="Edit"><Link href={`/followups/${f.id}/edit`}><Edit className="h-4 w-4" /></Link></Button>
-                        {f.status === "pending" && (
-                          <>
-                            <Button size="icon" variant="ghost" className="text-success hover:text-success hover:bg-success/10" title="Mark Complete" onClick={() => setCompleteId(f.id)}><CheckCircle2 className="h-4 w-4" /></Button>
-                            <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive hover:bg-destructive/10" title="Cancel" onClick={() => setCancelId(f.id)}><XCircle className="h-4 w-4" /></Button>
-                          </>
-                        )}
-                        {f.status !== "archived" && (
-                          <Button size="icon" variant="ghost" title="Archive" onClick={() => setArchiveId(f.id)}><Archive className="h-4 w-4" /></Button>
-                        )}
+                      <div className="flex justify-end gap-2">
+                        <Button asChild size="sm" variant="outline"><Link href={`/followups/${f.id}`}>Open</Link></Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /><span className="sr-only">More actions</span></Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild><Link href={`/followups/${f.id}/edit`}><Edit className="mr-2 h-4 w-4" />Edit</Link></DropdownMenuItem>
+                            {f.status === "pending" ? <DropdownMenuItem onClick={() => setCompleteId(f.id)}><CheckCircle2 className="mr-2 h-4 w-4" />Complete</DropdownMenuItem> : null}
+                            {f.status === "pending" ? <DropdownMenuItem onClick={() => setCancelId(f.id)} className="text-rose-600"><XCircle className="mr-2 h-4 w-4" />Cancel</DropdownMenuItem> : null}
+                            {f.status !== "archived" ? <DropdownMenuItem onClick={() => setArchiveId(f.id)}><Archive className="mr-2 h-4 w-4" />Archive</DropdownMenuItem> : null}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </td>
                   </tr>
@@ -231,7 +248,7 @@ export function FollowupTable({
 }
 
 function InputLike(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} className="h-10 rounded-md border bg-background px-3 text-sm" />;
+  return <input {...props} className="crm-filter-input" />;
 }
 
 function SelectLike({
@@ -240,7 +257,7 @@ function SelectLike({
   ...props
 }: React.SelectHTMLAttributes<HTMLSelectElement> & { label: string; options: string[][] }) {
   return (
-    <select {...props} className="h-10 rounded-md border bg-background px-3 text-sm">
+    <select {...props} className="crm-filter-select">
       <option value="">{label}</option>
       {options.map(([value, name]) => <option key={value} value={value}>{name}</option>)}
     </select>
