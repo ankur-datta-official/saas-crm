@@ -90,6 +90,7 @@ export async function getTeamMembers() {
     .from("profiles")
     .select("id, full_name, email")
     .eq("organization_id", organization.id)
+    .eq("is_active", true)
     .order("full_name");
 
   if (error) {

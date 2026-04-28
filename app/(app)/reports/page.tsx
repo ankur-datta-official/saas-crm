@@ -12,13 +12,13 @@ import { FollowupReport } from "@/components/crm/reports/followup-report";
 import { DocumentReport } from "@/components/crm/reports/document-report";
 import { HelpRequestReport } from "@/components/crm/reports/help-request-report";
 import { TeamPerformanceReport } from "@/components/crm/reports/team-performance-report";
-import { 
-  getIndustries, 
-  getCompanyCategories, 
-  getPipelineStages, 
-  getTeamMembers 
+import {
+  getIndustries,
+  getCompanyCategories,
+  getPipelineStages,
+  getTeamMembers
 } from "@/lib/crm/queries";
-import { 
+import {
   getSalesOverviewReport,
   getLeadReport,
   getPipelineReport,
@@ -29,6 +29,7 @@ import {
   getTeamPerformanceReport,
   type ReportFilters
 } from "@/lib/crm/report-queries";
+import { requirePermission } from "@/lib/auth/session";
 
 interface ReportsPageProps {
   searchParams: Promise<{
@@ -43,6 +44,7 @@ interface ReportsPageProps {
 }
 
 export default async function ReportsPage({ searchParams }: ReportsPageProps) {
+  await requirePermission("reports.view");
   const params = await searchParams;
   const currentTab = params.tab || "sales-overview";
 
@@ -69,7 +71,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
         description="Analyze your CRM data and team performance."
       />
 
-      <ReportFilterBar 
+      <ReportFilterBar
         users={users}
         industries={industries}
         stages={stages}

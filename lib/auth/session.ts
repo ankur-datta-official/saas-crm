@@ -9,7 +9,9 @@ export type Profile = {
   full_name: string | null;
   avatar_url: string | null;
   job_title: string | null;
+  department: string | null;
   phone: string | null;
+  is_active: boolean;
   is_super_admin: boolean;
 };
 
@@ -21,13 +23,19 @@ export type Organization = {
   owner_user_id: string;
 };
 
-type PermissionRow = {
+type UserRoleRow = {
+  role_id: string;
   roles: {
-    role_permissions: {
-      permissions: {
-        key: string;
-      } | null;
-    }[];
+    id: string;
+    name: string;
+    slug: string;
+    is_system: boolean;
+  } | null;
+};
+
+type RolePermissionRow = {
+  permissions: {
+    key: string;
   } | null;
 };
 
@@ -60,7 +68,7 @@ export async function getCurrentProfile(): Promise<Profile | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, organization_id, email, full_name, avatar_url, job_title, phone, is_super_admin")
+    .select("id, organization_id, email, full_name, avatar_url, job_title, department, phone, is_active, is_super_admin")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -74,7 +82,7 @@ export async function getCurrentProfile(): Promise<Profile | null> {
 export async function getCurrentOrganization(): Promise<Organization | null> {
   const profile = await getCurrentProfile();
 
-  if (!profile?.organization_id) {
+  if (!profile?.organization_id || !profile.is_active) {
     return null;
   }
 
@@ -94,6 +102,12 @@ export async function getCurrentOrganization(): Promise<Organization | null> {
 
 export async function requireOrganization(): Promise<Organization> {
   await requireAuth();
+  const profile = await getCurrentProfile();
+
+  if (profile && !profile.is_active) {
+    redirect("/unauthorized");
+  }
+
   const organization = await getCurrentOrganization();
 
   if (!organization) {
@@ -107,7 +121,7 @@ export async function getUserPermissions(): Promise<string[]> {
   const user = await getCurrentUser();
   const profile = await getCurrentProfile();
 
-  if (!user || !profile?.organization_id) {
+  if (!user || !profile?.organization_id || !profile.is_active) {
     return [];
   }
 
@@ -115,32 +129,79 @@ export async function getUserPermissions(): Promise<string[]> {
     return ["*"];
   }
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("user_roles")
-    .select("roles(role_permissions(permissions(key)))")
-    .eq("user_id", user.id)
-    .eq("organization_id", profile.organization_id);
+  try {
+    const supabase = await createClient();
 
-  if (error) {
-    throw new Error(error.message);
-  }
+    const { data: userRoles, error: rolesError } = await supabase
+      .from("user_roles")
+      .select("role_id, roles(id, name, slug, is_system)")
+      .eq("user_id", user.id)
+      .eq("organization_id", profile.organization_id);
 
-  const rows = (data ?? []) as unknown as PermissionRow[];
-  const permissions = new Set<string>();
+    if (rolesError) {
+      console.error("Error fetching user roles:", rolesError);
+      return [];
+    }
 
-  for (const row of rows) {
-    for (const rolePermission of row.roles?.role_permissions ?? []) {
-      if (rolePermission.permissions?.key) {
-        permissions.add(rolePermission.permissions.key);
+    const rolesData = userRoles as unknown as UserRoleRow[];
+    const permissions = new Set<string>();
+    const roleList = rolesData?.filter((record) => record.roles) ?? [];
+    const isAdmin = roleList.some(
+      (record) => record.roles?.slug === "organization-admin" || record.roles?.name?.toLowerCase().includes("admin"),
+    );
+
+    if (isAdmin) {
+      return ["*"];
+    }
+
+    const roleIds = roleList.map((record) => record.role_id).filter(Boolean);
+    if (roleIds.length === 0) {
+      return [];
+    }
+
+    const { data: rolePerms, error: rolePermsError } = await supabase
+      .from("role_permissions")
+      .select("permissions(key)")
+      .in("role_id", roleIds);
+
+    if (rolePermsError) {
+      console.error("Error fetching role permissions:", rolePermsError);
+      return [];
+    }
+
+    const permissionRows = rolePerms as unknown as RolePermissionRow[];
+    for (const row of permissionRows ?? []) {
+      if (row.permissions?.key) {
+        permissions.add(row.permissions.key);
       }
     }
-  }
 
-  return [...permissions];
+    return [...permissions];
+  } catch (error) {
+    console.error("Permission check error:", error);
+    return [];
+  }
 }
 
 export async function hasPermission(permission: string): Promise<boolean> {
   const permissions = await getUserPermissions();
   return permissions.includes("*") || permissions.includes(permission);
+}
+
+export async function requirePermission(permission: string): Promise<void> {
+  const allowed = await hasPermission(permission);
+
+  if (!allowed) {
+    redirect("/unauthorized");
+  }
+}
+
+export async function requireAnyPermission(permissions: string[]): Promise<void> {
+  for (const permission of permissions) {
+    if (await hasPermission(permission)) {
+      return;
+    }
+  }
+
+  redirect("/unauthorized");
 }

@@ -15,16 +15,21 @@ import { getDashboardMetrics } from "@/lib/crm/queries";
 import { getOpenHelpRequestsCount } from "@/lib/crm/help-request-queries";
 import { formatCurrency } from "@/lib/crm/utils";
 import { requireOrganization } from "@/lib/auth/session";
+import { getActiveUsersCount, getPendingInvitationsCount } from "@/lib/team/team-queries";
 
 export default async function DashboardPage() {
   const organization = await requireOrganization();
-  const [metrics, openHelpRequestsCount] = await Promise.all([
+  const [metrics, openHelpRequestsCount, activeUsersCount, pendingInvitationsCount] = await Promise.all([
     getDashboardMetrics(),
     getOpenHelpRequestsCount(),
+    getActiveUsersCount(),
+    getPendingInvitationsCount(),
   ]);
   const stats = [
     { title: "Total Leads", value: String(metrics.totalCompanies), description: "All active company lead records", icon: Users, tone: "teal", href: "/reports?tab=leads" },
     { title: "Hot Leads", value: String(metrics.hotLeads), description: "Leads marked with hot temperature", icon: Flame, tone: "rose", href: "/reports?tab=leads&leadTemperature=hot" },
+    { title: "Active Users", value: String(activeUsersCount), description: "Team members with current CRM access", icon: Users, tone: "blue", href: "/team" },
+    { title: "Pending Invitations", value: String(pendingInvitationsCount), description: "Invite links waiting to be accepted", icon: CalendarClock, tone: "slate", href: "/team" },
     { title: "Open Help Requests", value: String(openHelpRequestsCount), description: "Blocked deals needing support", icon: LifeBuoy, tone: "amber", href: "/reports?tab=help-requests" },
     { title: "Today's Follow-ups", value: String(metrics.todaysFollowups), description: "Due before end of day", icon: Handshake, tone: "amber", href: "/reports?tab=follow-ups" },
     { title: "Missed Follow-ups", value: String(metrics.missedFollowups), description: "Needs immediate review", icon: TimerOff, tone: "rose", href: "/reports?tab=follow-ups" },

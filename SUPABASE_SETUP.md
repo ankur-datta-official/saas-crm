@@ -33,6 +33,7 @@ Run these files in order from the Supabase SQL editor or your migration workflow
 6. `supabase/migrations/006_followup_reminder_management.sql`
 7. `supabase/migrations/007_document_management.sql`
 8. `supabase/migrations/008_need_help_escalation.sql`
+9. `supabase/migrations/009_team_role_permission_management.sql`
 
 The first migration creates:
 
@@ -262,3 +263,55 @@ After running all eight SQL files:
    - Filter options (Users, Industries, etc.) should be organization-specific.
 
 ## Verification Checklist
+
+## 13. Sprint 10 Team, Roles, and Permissions
+
+Run migration 009 after the earlier core and CRM migrations. It adds:
+
+- `team_invitations`
+- team invitation acceptance RPC helpers
+- tenant-safe profile visibility for team management
+- `profiles.department`
+- `profiles.is_active`
+- updated default role and permission seeding for new and existing organizations
+
+Invite link notes:
+
+- Sprint 10 supports manual invite links even if no email provider is configured.
+- The UI shows a copyable `/auth/accept-invite?token=...` link after invitation creation.
+- If you later add email delivery, reuse the same token and acceptance route instead of exposing the service role key to the client.
+
+Permission testing notes:
+
+- `/team` requires `team.view`
+- `/reports` requires `reports.view`
+- `/settings` requires `settings.view` or `settings.manage`
+- settings management pages require `settings.manage`
+- `/subscription` requires `subscription.view`
+- deeper action-level permission checks across older CRUD modules are still a follow-up item for later hardening
+
+Manual testing steps for Sprint 10:
+
+1. Run `supabase/migrations/009_team_role_permission_management.sql` in the Supabase SQL Editor.
+2. Run `npm run dev`.
+3. Log in as an Organization Admin.
+4. Open `/team`.
+5. Confirm the current signed-in user appears in Team Members.
+6. Create an invitation for another email address.
+7. Copy the invite link from the success state.
+8. Confirm the invitation appears in the Invitations tab.
+9. Cancel the invitation and confirm its status changes.
+10. Create another invitation and use Resend to generate a fresh token.
+11. Change an active user role from the Team Members tab.
+12. Deactivate a user and confirm they remain visible as Inactive.
+13. Reactivate the same user.
+14. Open Roles & Permissions.
+15. Select the Sales Executive role.
+16. Adjust permission checkboxes and save.
+17. Confirm Organization Admin still shows full access and cannot be reduced.
+18. Open `/reports` with a user that has `reports.view` and with one that does not.
+19. Open `/settings` with a user that has `settings.view` or `settings.manage`.
+20. Open `/subscription` with a user that has `subscription.view`.
+21. Accept an invite at `/auth/accept-invite?token=...` using a user that is not already in another organization.
+22. Check `activity_logs` for invite, cancel, resend, accept, role, deactivate, reactivate, and permission update entries.
+23. Run `npm run build`.

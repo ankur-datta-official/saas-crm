@@ -55,6 +55,9 @@ export function AuthForm({ mode }: AuthFormProps) {
       return;
     }
 
+    const nextPath = searchParams.get("next") ?? "/onboarding/workspace";
+    const redirectTarget = new URL(nextPath, window.location.origin).toString();
+
     if (isRegister) {
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: values.email,
@@ -63,7 +66,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           data: {
             full_name: values.fullName,
           },
-          emailRedirectTo: `${window.location.origin}/onboarding/workspace`,
+          emailRedirectTo: redirectTarget,
         },
       });
 
@@ -78,7 +81,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       }
 
       setMessage("Account created. Continue by setting up your workspace.");
-      router.push("/onboarding/workspace");
+      router.push(nextPath);
       return;
     }
 

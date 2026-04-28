@@ -68,9 +68,15 @@ export async function updateSession(request: NextRequest) {
   if (user && isAuthRoute) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("organization_id")
+      .select("organization_id, is_active")
       .eq("id", user.id)
       .maybeSingle();
+
+    if (profile && profile.is_active === false) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/unauthorized";
+      return NextResponse.redirect(url);
+    }
 
     const url = request.nextUrl.clone();
     url.pathname = profile?.organization_id ? "/dashboard" : "/onboarding/workspace";
@@ -80,9 +86,15 @@ export async function updateSession(request: NextRequest) {
   if (user && isProtected && !isOnboardingRoute) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("organization_id")
+      .select("organization_id, is_active")
       .eq("id", user.id)
       .maybeSingle();
+
+    if (profile && profile.is_active === false) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/unauthorized";
+      return NextResponse.redirect(url);
+    }
 
     if (!profile?.organization_id) {
       const url = request.nextUrl.clone();

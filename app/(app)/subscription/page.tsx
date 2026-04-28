@@ -1,7 +1,10 @@
 import { WalletCards } from "lucide-react";
 import { ModulePlaceholder } from "@/components/shared/module-placeholder";
+import { requirePermission } from "@/lib/auth/session";
 
-export default function SubscriptionPage() {
+export default async function SubscriptionPage() {
+  await requirePermission("subscription.view");
+
   return (
     <ModulePlaceholder
       title="Subscription"

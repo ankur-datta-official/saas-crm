@@ -1,8 +1,11 @@
 import { BriefcaseBusiness, Building2, KanbanSquare } from "lucide-react";
 import { CrmSettingsCard } from "@/components/crm/crm-settings-card";
 import { PageHeader } from "@/components/shared/page-header";
+import { requireAnyPermission } from "@/lib/auth/session";
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  await requireAnyPermission(["settings.view", "settings.manage"]);
+
   return (
     <div>
       <PageHeader

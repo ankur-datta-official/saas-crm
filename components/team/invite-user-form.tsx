@@ -1,0 +1,203 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { CheckCircle2, Link2, UserPlus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { inviteTeamMember } from "@/lib/team/team-actions";
+import type { RoleRow } from "@/lib/team/types";
+
+type InviteUserFormProps = {
+  roles: RoleRow[];
+  disabled?: boolean;
+};
+
+const initialState = {
+  email: "",
+  roleId: "",
+  fullName: "",
+  jobTitle: "",
+  department: "",
+  phone: "",
+};
+
+export function InviteUserForm({ roles, disabled = false }: InviteUserFormProps) {
+  const [open, setOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const [form, setForm] = useState(initialState);
+  const [error, setError] = useState<string | null>(null);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+
+  function reset() {
+    setForm(initialState);
+    setError(null);
+    setInviteLink(null);
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    setOpen(nextOpen);
+
+    if (!nextOpen) {
+      reset();
+    }
+  }
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setInviteLink(null);
+
+    startTransition(async () => {
+      try {
+        const result = await inviteTeamMember(form);
+        setInviteLink(`${window.location.origin}/auth/accept-invite?token=${result.token}`);
+      } catch (submissionError) {
+        setError(submissionError instanceof Error ? submissionError.message : "Unable to create invitation.");
+      }
+    });
+  }
+
+  async function copyInviteLink() {
+    if (!inviteLink) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(inviteLink);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger asChild>
+        <Button disabled={disabled}>
+          <UserPlus className="mr-2 h-4 w-4" />
+          Invite User
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Invite Team Member</DialogTitle>
+          <DialogDescription>Invite a team member and assign their CRM access role.</DialogDescription>
+        </DialogHeader>
+
+        {inviteLink ? (
+          <div className="space-y-4">
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-900">
+              <div className="flex items-center gap-2 font-medium">
+                <CheckCircle2 className="h-5 w-5" />
+                Invitation created successfully.
+              </div>
+              <p className="mt-2 text-sm">
+                Email delivery is optional in this sprint, so you can copy and share the invite link manually.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="invite-link">Invite Link</Label>
+              <div className="flex gap-2">
+                <Input id="invite-link" readOnly value={inviteLink} className="font-mono text-xs" />
+                <Button type="button" variant="outline" onClick={copyInviteLink}>
+                  <Link2 className="mr-2 h-4 w-4" />
+                  Copy
+                </Button>
+              </div>
+            </div>
+            <Button type="button" variant="outline" className="w-full" onClick={() => handleOpenChange(false)}>
+              Done
+            </Button>
+          </div>
+        ) : (
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{error}</div> : null}
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="team-email">Email</Label>
+                <Input
+                  id="team-email"
+                  type="email"
+                  required
+                  value={form.email}
+                  onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
+                  placeholder="teammate@company.com"
+                />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label>Role</Label>
+                <Select value={form.roleId} onValueChange={(value) => setForm((current) => ({ ...current, roleId: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roles.map((role) => (
+                      <SelectItem key={role.id} value={role.id}>
+                        {role.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="team-full-name">Full Name</Label>
+                <Input
+                  id="team-full-name"
+                  value={form.fullName}
+                  onChange={(event) => setForm((current) => ({ ...current, fullName: event.target.value }))}
+                  placeholder="Amina Rahman"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="team-job-title">Designation</Label>
+                <Input
+                  id="team-job-title"
+                  value={form.jobTitle}
+                  onChange={(event) => setForm((current) => ({ ...current, jobTitle: event.target.value }))}
+                  placeholder="Sales Executive"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="team-department">Department</Label>
+                <Input
+                  id="team-department"
+                  value={form.department}
+                  onChange={(event) => setForm((current) => ({ ...current, department: event.target.value }))}
+                  placeholder="Sales"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="team-phone">Phone</Label>
+                <Input
+                  id="team-phone"
+                  value={form.phone}
+                  onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
+                  placeholder="+8801XXXXXXXXX"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isPending || !form.roleId}>
+                {isPending ? "Creating..." : "Create Invitation"}
+              </Button>
+            </div>
+          </form>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
