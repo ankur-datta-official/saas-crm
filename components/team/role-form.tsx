@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,15 +15,9 @@ type RoleFormProps = {
 
 export function RoleForm({ selectedRole, canManage, onSaved }: RoleFormProps) {
   const [isPending, startTransition] = useTransition();
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+  const [name, setName] = useState(selectedRole?.name ?? "");
+  const [description, setDescription] = useState(selectedRole?.description ?? "");
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setName(selectedRole?.name ?? "");
-    setDescription(selectedRole?.description ?? "");
-    setError(null);
-  }, [selectedRole]);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -89,4 +83,3 @@ export function RoleForm({ selectedRole, canManage, onSaved }: RoleFormProps) {
     </form>
   );
 }
-

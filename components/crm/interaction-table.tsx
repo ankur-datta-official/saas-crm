@@ -47,7 +47,7 @@ export function InteractionTable({ interactions, companies, contacts }: { intera
       </form>
 
       {interactions.length === 0 ? (
-        <EmptyState title="No meeting history yet" description="Add your first client interaction to start tracking progress." icon={Plus} />
+        <EmptyState title="No meeting history yet" description="Add your first client interaction to start tracking progress." icon={Plus} actionLabel="Add Meeting" actionHref="/meetings/new" />
       ) : (
         <div className="space-y-3 md:hidden">
           {interactions.map((item) => (

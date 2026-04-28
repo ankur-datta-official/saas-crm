@@ -12,7 +12,7 @@ export const env = {
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
   supabasePublishableKey:
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
-  appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+  appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "",
 };
 
 export function hasSupabaseEnv() {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { Save, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -17,21 +17,17 @@ type PermissionMatrixProps = {
 
 export function PermissionMatrix({ role, permissions, canManage, onSaved }: PermissionMatrixProps) {
   const [isPending, startTransition] = useTransition();
-  const [selectedPermissionIds, setSelectedPermissionIds] = useState<string[]>([]);
-  const permissionByKey = new Map(permissions.map((permission) => [permission.key, permission]));
-
-  useEffect(() => {
-    if (!role) {
-      setSelectedPermissionIds([]);
-      return;
-    }
-
-    setSelectedPermissionIds(
-      role.permissions
-        .map((permissionKey) => permissionByKey.get(permissionKey)?.id ?? null)
-        .filter((permissionId): permissionId is string => Boolean(permissionId)),
-    );
-  }, [permissionByKey, role]);
+  const permissionByKey = useMemo(
+    () => new Map(permissions.map((permission) => [permission.key, permission])),
+    [permissions],
+  );
+  const [selectedPermissionIds, setSelectedPermissionIds] = useState<string[]>(() =>
+    role
+      ? role.permissions
+          .map((permissionKey) => permissionByKey.get(permissionKey)?.id ?? null)
+          .filter((permissionId): permissionId is string => Boolean(permissionId))
+      : [],
+  );
 
   function togglePermission(permissionId: string) {
     setSelectedPermissionIds((current) =>
@@ -124,4 +120,3 @@ export function PermissionMatrix({ role, permissions, canManage, onSaved }: Perm
     </div>
   );
 }
-

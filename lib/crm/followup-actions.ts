@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAuth, requireOrganization } from "@/lib/auth/session";
+import { getSafeErrorMessage, logServerError } from "@/lib/errors";
 import { followupSchema } from "@/lib/crm/schemas";
+import { createNotification } from "@/lib/notifications/notifications";
 import { createClient } from "@/lib/supabase/server";
 import type { CrmActionState } from "./actions";
 
@@ -29,7 +31,7 @@ async function validateFollowupOwnership(followupId: string) {
 
   const { data, error } = await supabase
     .from("followups")
-    .select("id, company_id")
+    .select("id, company_id, title, created_by, assigned_user_id")
     .eq("id", followupId)
     .eq("organization_id", organization.id)
     .maybeSingle();
@@ -67,14 +69,25 @@ export async function createFollowup(formData: FormData): Promise<CrmActionState
       created_by: user.id,
       updated_by: user.id,
     })
-    .select("id, title")
+    .select("id, title, assigned_user_id, created_by")
     .single();
 
   if (error) {
-    return { ok: false, error: error.message };
+    logServerError("followup.create", error, { organizationId: organization.id, companyId: validated.data.company_id });
+    return { ok: false, error: getSafeErrorMessage(error, "Unable to create the follow-up right now.") };
   }
 
   await insertActivityLog("created", "followup", data.id, { title: data.title });
+
+  if (data.assigned_user_id && data.assigned_user_id !== user.id) {
+    await createNotification({
+      userId: data.assigned_user_id,
+      type: "followup.assigned",
+      title: "New follow-up assigned",
+      message: `You were assigned the follow-up "${data.title}".`,
+      link: `/followups/${data.id}`,
+    });
+  }
 
   revalidatePath("/followups");
   revalidatePath(`/companies/${validated.data.company_id}`);
@@ -145,6 +158,16 @@ export async function completeFollowup(followupId: string): Promise<CrmActionSta
   }
 
   await insertActivityLog("completed", "followup", followupId);
+
+  if (followup.created_by && followup.created_by !== user.id) {
+    await createNotification({
+      userId: followup.created_by,
+      type: "followup.completed",
+      title: "Follow-up completed",
+      message: `The follow-up "${followup.title ?? "Untitled follow-up"}" was marked complete.`,
+      link: `/followups/${followupId}`,
+    });
+  }
 
   revalidatePath("/followups");
   revalidatePath(`/companies/${followup.company_id}`);

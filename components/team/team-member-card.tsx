@@ -2,6 +2,7 @@
 
 import { MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getDisplayName } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,7 +38,7 @@ export function TeamMemberCard({
     <div className="rounded-lg border bg-white p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate font-medium">{member.full_name ?? "Unnamed user"}</p>
+          <p className="truncate font-medium">{getDisplayName(member.full_name, member.email)}</p>
           <p className="mt-1 truncate text-sm text-muted-foreground">{member.email}</p>
         </div>
         <UserStatusBadge active={member.is_active} />
@@ -103,4 +104,3 @@ export function TeamMemberCard({
     </div>
   );
 }
-

@@ -26,7 +26,7 @@ export function AppSidebar({ open = false, onOpenChange }: AppSidebarProps) {
       />
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r bg-white transition-transform md:sticky md:top-0 md:z-auto md:h-screen md:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col overflow-hidden border-r bg-white transition-transform md:sticky md:top-0 md:z-auto md:h-screen md:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full",
         )}
       >
@@ -45,7 +45,7 @@ export function AppSidebar({ open = false, onOpenChange }: AppSidebarProps) {
             <span className="sr-only">Close navigation</span>
           </Button>
         </div>
-        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+        <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-4">
           {sidebarItems.map((item) => {
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
             const Icon = item.icon;
@@ -65,7 +65,7 @@ export function AppSidebar({ open = false, onOpenChange }: AppSidebarProps) {
             );
           })}
         </nav>
-        <div className="border-t p-4">
+        <div className="shrink-0 border-t p-4">
           <div className="rounded-lg border bg-muted/45 p-3">
             <p className="text-xs font-medium text-foreground">Workspace</p>
             <p className="mt-1 truncate text-sm text-muted-foreground">Acme Enterprise</p>

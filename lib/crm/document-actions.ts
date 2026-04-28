@@ -2,9 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireOrganization } from "@/lib/auth/session";
+import { getSafeErrorMessage, logServerError } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
 import { checkFileSizeLimit, checkStorageLimit } from "@/lib/subscription/subscription-queries";
 import { documentSchema } from "@/lib/crm/schemas";
+import { createNotification } from "@/lib/notifications/notifications";
 
 async function insertActivityLog(action: string, entityType: string, entityId: string, metadata: Record<string, any> = {}) {
   const user = await requireAuth();
@@ -98,7 +100,8 @@ export async function createDocument(formData: FormData): Promise<DocumentAction
     .upload(filePath, file);
 
   if (uploadError) {
-    return { ok: false, error: `Upload failed: ${uploadError.message}` };
+    logServerError("document.upload.storage", uploadError, { organizationId: organization.id, companyId: validated.data.company_id });
+    return { ok: false, error: "File upload failed. Please try again with the same or a smaller file." };
   }
 
   // 2. Insert record into database
@@ -119,10 +122,28 @@ export async function createDocument(formData: FormData): Promise<DocumentAction
   if (dbError) {
     // Cleanup file if DB insert fails
     await supabase.storage.from("crm-documents").remove([filePath]);
-    return { ok: false, error: dbError.message };
+    logServerError("document.upload.record", dbError, { organizationId: organization.id, documentId, companyId: validated.data.company_id });
+    return { ok: false, error: getSafeErrorMessage(dbError, "The document was uploaded but could not be saved. Please try again.") };
   }
 
   await insertActivityLog("uploaded", "document", documentId, { title: validated.data.title });
+
+  const { data: company } = await supabase
+    .from("companies")
+    .select("assigned_user_id, name")
+    .eq("id", validated.data.company_id)
+    .eq("organization_id", organization.id)
+    .maybeSingle();
+
+  if (company?.assigned_user_id && company.assigned_user_id !== user.id) {
+    await createNotification({
+      userId: company.assigned_user_id,
+      type: "document.uploaded",
+      title: "New document uploaded",
+      message: `A document was uploaded for ${company.name ?? "your assigned company"}: "${validated.data.title}".`,
+      link: `/documents/${documentId}`,
+    });
+  }
 
   revalidatePath("/documents");
   revalidatePath(`/companies/${validated.data.company_id}`);

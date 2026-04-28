@@ -120,7 +120,16 @@ export async function getAllPlans(): Promise<SubscriptionPlan[]> {
     throw new Error(error.message);
   }
 
-  return (data ?? []) as SubscriptionPlan[];
+  const planOrder = new Map([
+    ["starter", 0],
+    ["professional", 1],
+    ["business", 2],
+    ["enterprise", 3],
+  ]);
+
+  return ((data ?? []) as SubscriptionPlan[]).sort((left, right) => {
+    return (planOrder.get(left.slug) ?? Number.MAX_SAFE_INTEGER) - (planOrder.get(right.slug) ?? Number.MAX_SAFE_INTEGER);
+  });
 }
 
 export async function getOrganizationUsage(): Promise<OrganizationUsage> {

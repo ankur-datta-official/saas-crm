@@ -131,6 +131,8 @@ export function DocumentTable({ documents, companies, teamMembers }: DocumentTab
             title="No documents found"
             description="Try adjusting your filters or upload a new document."
             icon={FileText}
+            actionLabel="Upload Document"
+            actionHref="/documents/new"
           />
         ) : (
           documents.map((doc) => (
@@ -249,6 +251,8 @@ export function DocumentTable({ documents, companies, teamMembers }: DocumentTab
             title="No documents found"
             description="Try adjusting your filters or upload a new document."
             icon={FileText}
+            actionLabel="Upload Document"
+            actionHref="/documents/new"
           />
         </div>
       )}

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentUser, hasPermission, requireOrganization } from "@/lib/auth/session";
+import { getSafeErrorMessage, logServerError } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
 import { getAllPlans } from "./subscription-queries";
 
@@ -60,7 +61,8 @@ export async function switchSubscriptionPlan(planId: string) {
     .eq("organization_id", organization.id);
 
   if (error) {
-    throw new Error(error.message);
+    logServerError("subscription.switch", error, { organizationId: organization.id, planId });
+    throw new Error(getSafeErrorMessage(error, "Unable to change the subscription plan right now."));
   }
 
   await insertActivityLog("subscription.plan_changed", subscription.id, {

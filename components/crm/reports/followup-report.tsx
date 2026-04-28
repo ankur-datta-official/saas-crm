@@ -105,7 +105,7 @@ export function FollowupReport({ data }: { data: FollowupReportData }) {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Today's Follow-ups</p>
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Today&apos;s Follow-ups</p>
           <p className="mt-2 text-3xl font-bold">{data.todaysFollowups.length}</p>
         </div>
         <div className="rounded-lg border bg-card p-4">
@@ -130,7 +130,7 @@ export function FollowupReport({ data }: { data: FollowupReportData }) {
       />
 
       <ReportDataTable 
-        title="Today's Pending Follow-ups" 
+        title="Today&apos;s Pending Follow-ups" 
         columns={columns} 
         data={data.todaysFollowups} 
         exportFileName="todays-followups"

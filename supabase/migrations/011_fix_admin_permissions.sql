@@ -1,5 +1,6 @@
--- Migration 011: Fix permission keys and admin permissions
--- Fixes: team.view permission missing, permission key mismatch
+-- Migration 011: Legacy permission repair patch
+-- Purpose: fix older upgraded environments where permission keys or admin grants were incomplete.
+-- Note: fresh installs should follow the default chain through 010, then 012.
 
 -- 1. Fix permission keys - add missing modern permissions
 insert into public.permissions (key, name, description) values

@@ -12,7 +12,9 @@ import {
   pipelineStageSchema,
   temperatureFromRating,
 } from "@/lib/crm/schemas";
+import { getSafeErrorMessage, logServerError } from "@/lib/errors";
 import { slugify } from "@/lib/crm/utils";
+import { createNotification } from "@/lib/notifications/notifications";
 import { createClient } from "@/lib/supabase/server";
 import { checkCompanyLimit, requireFeature } from "@/lib/subscription/subscription-queries";
 
@@ -484,7 +486,10 @@ export async function createCompanyAction(values: unknown): Promise<CrmActionSta
     .select("id")
     .single();
 
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    logServerError("company.create", error, { organizationId: organization.id, name: parsed.data.name });
+    return { ok: false, error: getSafeErrorMessage(error, "Unable to create the company right now.") };
+  }
 
   await insertActivityLog("company.created", "company", data.id, { name: parsed.data.name });
   revalidatePath("/companies");
@@ -574,7 +579,10 @@ export async function createContactAction(values: unknown): Promise<CrmActionSta
       .select("id")
       .single();
 
-    if (error) return { ok: false, error: error.message };
+    if (error) {
+      logServerError("contact.create", error, { companyId: parsed.data.company_id, name: parsed.data.name });
+      return { ok: false, error: getSafeErrorMessage(error, "Unable to create the contact right now.") };
+    }
 
     await insertActivityLog("contact.created", "contact_person", data.id, {
       company_id: parsed.data.company_id,
@@ -681,9 +689,21 @@ export async function createInteractionAction(values: unknown): Promise<CrmActio
     .select("id")
     .single();
 
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    logServerError("meeting.create", error, { organizationId: organization.id, companyId: parsed.data.company_id });
+    return { ok: false, error: getSafeErrorMessage(error, "Unable to create the meeting right now.") };
+  }
   await insertActivityLog("meeting.created", "interaction", data.id, { company_id: parsed.data.company_id });
   if (parsed.data.next_followup_at) await insertActivityLog("meeting.next_followup_added", "interaction", data.id, { next_followup_at: parsed.data.next_followup_at });
+  if (parsed.data.assigned_user_id && parsed.data.assigned_user_id !== user.id) {
+    await createNotification({
+      userId: parsed.data.assigned_user_id,
+      type: "meeting.assigned",
+      title: "New meeting assigned",
+      message: "A new meeting or interaction has been assigned to you.",
+      link: `/meetings/${data.id}`,
+    });
+  }
   await updateCompanyRatingFromInteraction(parsed.data.company_id, parsed.data.success_rating, leadTemperature);
   revalidatePath("/meetings");
   revalidatePath(`/companies/${parsed.data.company_id}`);

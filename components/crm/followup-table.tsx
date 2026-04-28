@@ -85,7 +85,7 @@ export function FollowupTable({
       </form>
 
       {followups.length === 0 ? (
-        <EmptyState title="No follow-ups found" description="Schedule a new follow-up to keep the momentum." icon={Calendar} />
+        <EmptyState title="No follow-ups found" description="Schedule a new follow-up to keep the momentum." icon={Calendar} actionLabel="Add Follow-up" actionHref="/followups/new" />
       ) : (
         <div className="space-y-3 md:hidden">
           {followups.map((f) => (

@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAuth, requireOrganization } from "@/lib/auth/session";
+import { getSafeErrorMessage, logServerError } from "@/lib/errors";
 import { helpRequestSchema, helpRequestUpdateSchema } from "@/lib/crm/schemas";
+import { createNotification } from "@/lib/notifications/notifications";
 import { createClient } from "@/lib/supabase/server";
 import type { CrmActionState } from "./actions";
 
@@ -33,7 +35,7 @@ async function validateHelpRequestOwnership(helpRequestId: string) {
 
   const { data, error } = await supabase
     .from("help_requests")
-    .select("id, company_id, organization_id")
+    .select("id, company_id, organization_id, title, requested_by, assigned_to")
     .eq("id", helpRequestId)
     .eq("organization_id", organization.id)
     .maybeSingle();
@@ -78,7 +80,8 @@ export async function createHelpRequest(
     .single();
 
   if (error) {
-    return { ok: false, error: error.message };
+    logServerError("help-request.create", error, { organizationId: organization.id, companyId: validated.data.company_id });
+    return { ok: false, error: getSafeErrorMessage(error, "Unable to create the help request right now.") };
   }
 
   await insertActivityLog("created", "help_request", data.id, {
@@ -176,6 +179,16 @@ export async function assignHelpRequest(
     assigned_to: assignedTo,
   });
 
+  if (assignedTo && assignedTo !== user.id) {
+    await createNotification({
+      userId: assignedTo,
+      type: "help_request.assigned",
+      title: "Help request assigned",
+      message: `You were assigned the help request "${helpRequest.title ?? "Untitled request"}".`,
+      link: `/need-help/${helpRequestId}`,
+    });
+  }
+
   revalidatePath("/need-help");
   revalidatePath(`/need-help/${helpRequestId}`);
   revalidatePath(`/companies/${helpRequest.company_id}`);
@@ -213,6 +226,16 @@ export async function resolveHelpRequest(
   await insertActivityLog("resolved", "help_request", helpRequestId, {
     resolution_note: resolutionNote,
   });
+
+  if (helpRequest.requested_by && helpRequest.requested_by !== user.id) {
+    await createNotification({
+      userId: helpRequest.requested_by,
+      type: "help_request.resolved",
+      title: "Help request resolved",
+      message: `Your help request "${helpRequest.title ?? "Untitled request"}" has been resolved.`,
+      link: `/need-help/${helpRequestId}`,
+    });
+  }
 
   revalidatePath("/need-help");
   revalidatePath(`/need-help/${helpRequestId}`);

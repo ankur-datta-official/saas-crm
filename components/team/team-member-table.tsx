@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { deactivateTeamMember, reactivateTeamMember, updateTeamMemberRole } from "@/lib/team/team-actions";
 import type { RoleRow, TeamMember } from "@/lib/team/types";
+import { getDisplayName } from "@/lib/utils";
 import { RoleBadge } from "./role-badge";
 import { TeamMemberCard } from "./team-member-card";
 import { UserStatusBadge } from "./user-status-badge";
@@ -100,6 +101,8 @@ export function TeamMemberTable({
         title="No team members yet"
         description="Invite your first teammate to start collaborating in this CRM workspace."
         icon={User}
+        actionLabel="Invite User"
+        actionHref="/team"
       />
     );
   }
@@ -164,6 +167,7 @@ export function TeamMemberTable({
             ))}
           </div>
           <div className="hidden overflow-hidden rounded-lg border bg-white md:block">
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader className="bg-muted/40">
                 <TableRow>
@@ -185,7 +189,7 @@ export function TeamMemberTable({
                     <TableRow key={member.id}>
                       <TableCell>
                         <div className="font-medium">
-                          {member.full_name ?? "Unnamed user"}
+                          {getDisplayName(member.full_name, member.email)}
                           {member.id === currentUserId ? <span className="ml-2 text-xs text-muted-foreground">(You)</span> : null}
                         </div>
                       </TableCell>
@@ -241,6 +245,7 @@ export function TeamMemberTable({
                 })}
               </TableBody>
             </Table>
+            </div>
           </div>
         </>
       )}

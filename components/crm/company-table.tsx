@@ -57,6 +57,8 @@ export function CompanyTable({ companies, industries, categories, stages, teamMe
           title="No companies added yet"
           description="Add your first lead or import data later."
           icon={Plus}
+          actionLabel="Add Company"
+          actionHref="/companies/new"
         />
       ) : (
         <div className="space-y-3 md:hidden">

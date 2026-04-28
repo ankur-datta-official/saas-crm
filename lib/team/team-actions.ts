@@ -9,6 +9,8 @@ import {
   requireOrganization,
   requirePermission,
 } from "@/lib/auth/session";
+import { getSafeErrorMessage, logServerError } from "@/lib/errors";
+import { createNotification } from "@/lib/notifications/notifications";
 import { createClient } from "@/lib/supabase/server";
 import { checkUserLimit } from "@/lib/subscription/subscription-queries";
 import { getPermissions, getRoleById, getRoles } from "./team-queries";
@@ -142,12 +144,21 @@ export async function inviteTeamMember(input: InviteTeamMemberInput) {
     .single();
 
   if (error) {
-    throw new Error(error.message);
+    logServerError("team.invite", error, { organizationId: organization.id, email });
+    throw new Error(getSafeErrorMessage(error, "Unable to create the invitation right now."));
   }
 
   await logActivity(organization.id, "team.member.invited", "team_invitation", data.id, {
     email,
     role_id: input.roleId,
+  });
+
+  await createNotification({
+    userId: user.id,
+    type: "team.invitation.created",
+    title: "Invitation created",
+    message: `An invite link is ready for ${email}.`,
+    link: "/team",
   });
 
   revalidatePath("/team");

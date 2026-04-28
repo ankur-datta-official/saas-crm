@@ -50,7 +50,7 @@ export function RoleTable({ roles, permissions, canManage }: RoleTableProps) {
   return (
     <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
       <div className="space-y-4">
-        <RoleForm selectedRole={selectedRole} canManage={canManage} onSaved={() => router.refresh()} />
+        <RoleForm key={selectedRole?.id ?? "new-role"} selectedRole={selectedRole} canManage={canManage} onSaved={() => router.refresh()} />
         <div className="overflow-hidden rounded-lg border bg-white">
           <Table>
             <TableHeader className="bg-muted/40">
@@ -97,7 +97,7 @@ export function RoleTable({ roles, permissions, canManage }: RoleTableProps) {
         </div>
       </div>
 
-      <PermissionMatrix role={selectedRole} permissions={permissions} canManage={canManage} onSaved={() => router.refresh()} />
+      <PermissionMatrix key={selectedRole?.id ?? "no-role"} role={selectedRole} permissions={permissions} canManage={canManage} onSaved={() => router.refresh()} />
 
       <ConfirmModal
         open={Boolean(archiveId)}

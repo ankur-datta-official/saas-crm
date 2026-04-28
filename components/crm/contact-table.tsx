@@ -49,6 +49,8 @@ export function ContactTable({ contacts, companies }: { contacts: ContactPerson[
           title="No contacts added yet"
           description="Add your first decision maker."
           icon={Plus}
+          actionLabel="Add Contact"
+          actionHref="/contacts/new"
         />
       ) : (
         <div className="space-y-3 md:hidden">

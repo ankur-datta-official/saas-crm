@@ -132,15 +132,9 @@ export function HelpRequestTable({
             title="No help requests found"
             description="Create a new help request to get support from your team."
             icon={CircleHelp}
+            actionLabel="New Help Request"
+            actionHref="/need-help/new"
           />
-          <div className="flex justify-center">
-            <Button asChild>
-              <Link href="/need-help/new">
-                <Plus className="mr-2 h-4 w-4" />
-                New Help Request
-              </Link>
-            </Button>
-          </div>
         </div>
       ) : (
         <div className="space-y-3 md:hidden">
