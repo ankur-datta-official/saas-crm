@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { requireAuth, requireOrganization } from "@/lib/auth/session";
 import { getSafeErrorMessage, logServerError } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
@@ -30,13 +31,103 @@ export type DocumentActionState = {
   fieldErrors?: Record<string, string>;
 };
 
-async function validateDocumentOwnership(documentId: string) {
+type AccessibleDocumentFile = {
+  id: string;
+  organization_id: string;
+  company_id: string;
+  file_path: string;
+  file_name: string;
+  file_size_mb: number | null;
+  mime_type: string | null;
+  file_extension: string | null;
+};
+
+function getValidationFailure(error: z.ZodError): DocumentActionState {
+  return {
+    ok: false,
+    error: error.errors[0]?.message ?? "Please check the form and try again.",
+    fieldErrors: Object.fromEntries(error.errors.map((issue) => [String(issue.path[0]), issue.message])),
+  };
+}
+
+function sanitizePathSegment(value: string) {
+  return value.replace(/[^a-zA-Z0-9_-]/g, "");
+}
+
+function sanitizeFileName(fileName: string) {
+  const cleaned = fileName
+    .normalize("NFKD")
+    .replace(/[^\x20-\x7E]/g, "")
+    .replace(/[\\/:*?"<>|]/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^\.+/, "")
+    .trim();
+
+  const fallback = cleaned || "document";
+  return fallback.slice(0, 120);
+}
+
+function buildDocumentFilePath(organizationId: string, companyId: string, documentId: string, originalFileName: string) {
+  const safeOrganizationId = sanitizePathSegment(organizationId);
+  const safeCompanyId = sanitizePathSegment(companyId);
+  const safeDocumentId = sanitizePathSegment(documentId);
+  const safeFileName = sanitizeFileName(originalFileName);
+  return `${safeOrganizationId}/${safeCompanyId}/${safeDocumentId}/${safeFileName}`;
+}
+
+function getStorageErrorMessage(error: { message?: string; statusCode?: string | number } | null | undefined) {
+  const rawMessage = error?.message?.toLowerCase() ?? "";
+  const statusCode = String(error?.statusCode ?? "");
+
+  if (rawMessage.includes("bucket not found") || rawMessage.includes("not found") || statusCode === "404") {
+    return "Storage bucket not found. Please create crm-documents bucket.";
+  }
+
+  if (rawMessage.includes("row-level security") || rawMessage.includes("permission denied") || rawMessage.includes("unauthorized") || statusCode === "403" || statusCode === "401") {
+    return "You do not have permission to upload this document.";
+  }
+
+  if (rawMessage.includes("already exists") || rawMessage.includes("duplicate")) {
+    return "A file with the same name already exists in this upload path. Please rename the file and try again.";
+  }
+
+  if (rawMessage.includes("invalid") || rawMessage.includes("path")) {
+    return "Upload failed. Please try again.";
+  }
+
+  return "Upload failed. Please try again.";
+}
+
+async function cleanupUploadedFile(supabase: Awaited<ReturnType<typeof createClient>>, filePath: string) {
+  const { error } = await supabase.storage.from("crm-documents").remove([filePath]);
+  if (error) {
+    logServerError("document.upload.cleanup_failed", error, { filePath });
+  }
+}
+
+function getSignedUrlErrorMessage(error: { message?: string; statusCode?: string | number } | null | undefined) {
+  const rawMessage = error?.message?.toLowerCase() ?? "";
+  const statusCode = String(error?.statusCode ?? "");
+
+  if (rawMessage.includes("bucket not found") || rawMessage.includes("not found") || statusCode === "404") {
+    return "Storage bucket not found. Please create crm-documents bucket.";
+  }
+
+  if (rawMessage.includes("row-level security") || rawMessage.includes("permission denied") || rawMessage.includes("unauthorized") || statusCode === "403" || statusCode === "401") {
+    return "You do not have permission to access this document.";
+  }
+
+  return "Unable to prepare this document. Please try again.";
+}
+
+async function validateDocumentOwnership(documentId: string): Promise<{ organization: Awaited<ReturnType<typeof requireOrganization>>; document: AccessibleDocumentFile }> {
   const organization = await requireOrganization();
   const supabase = await createClient();
 
   const { data: document, error } = await supabase
     .from("documents")
-    .select("id, organization_id, company_id, file_path, file_size_mb")
+    .select("id, organization_id, company_id, file_path, file_name, file_size_mb, mime_type, file_extension")
     .eq("id", documentId)
     .eq("organization_id", organization.id)
     .single();
@@ -48,13 +139,46 @@ async function validateDocumentOwnership(documentId: string) {
   return { organization, document };
 }
 
+async function createSignedDocumentUrl(documentId: string, expiresInSeconds = 900) {
+  await requireAuth();
+  const { document } = await validateDocumentOwnership(documentId);
+
+  if (!document.file_path) {
+    throw new Error("This document is missing its stored file path.");
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .storage
+    .from("crm-documents")
+    .createSignedUrl(document.file_path, expiresInSeconds);
+
+  if (error || !data?.signedUrl) {
+    logServerError("document.signed_url", error ?? new Error("Signed URL was not returned."), {
+      documentId,
+      filePath: document.file_path,
+      expiresInSeconds,
+    });
+    throw new Error(getSignedUrlErrorMessage(error));
+  }
+
+  return {
+    signedUrl: data.signedUrl,
+    fileName: document.file_name,
+    mimeType: document.mime_type,
+    fileExtension: document.file_extension,
+    fileSizeMb: document.file_size_mb,
+  };
+}
+
 export async function createDocument(formData: FormData): Promise<DocumentActionState> {
   const user = await requireAuth();
   const organization = await requireOrganization();
   const supabase = await createClient();
 
-  const file = formData.get("file") as File;
-  if (!file) return { ok: false, error: "File is required." };
+  const maybeFile = formData.get("file");
+  const file = maybeFile instanceof File ? maybeFile : null;
+  if (!file || file.size <= 0) return { ok: false, error: "File is required." };
 
   const fileSizeLimit = await checkFileSizeLimit(file.size);
   if (!fileSizeLimit.allowed) {
@@ -63,7 +187,7 @@ export async function createDocument(formData: FormData): Promise<DocumentAction
       projected: fileSizeLimit.projected,
       max: fileSizeLimit.max,
     });
-    return { ok: false, error: fileSizeLimit.message ?? "The selected file is too large for your current plan." };
+    return { ok: false, error: "File is larger than your plan limit." };
   }
 
   const storageLimit = await checkStorageLimit(file.size / (1024 * 1024));
@@ -74,42 +198,45 @@ export async function createDocument(formData: FormData): Promise<DocumentAction
       projected: storageLimit.projected,
       max: storageLimit.max,
     });
-    return { ok: false, error: storageLimit.message ?? "Document storage limit reached for your current plan." };
+    return { ok: false, error: storageLimit.message ?? "Document storage limit has been reached for your current plan." };
   }
 
   const rawValues = Object.fromEntries(formData.entries());
   const validated = documentSchema.safeParse(rawValues);
 
   if (!validated.success) {
-    return {
-      ok: false,
-      error: "Validation failed",
-      fieldErrors: Object.fromEntries(
-        validated.error.errors.map((e) => [e.path[0], e.message])
-      ),
-    };
+    return getValidationFailure(validated.error);
   }
 
   const documentId = crypto.randomUUID();
-  const fileExtension = file.name.split(".").pop();
-  const filePath = `${organization.id}/${validated.data.company_id}/${documentId}/${file.name}`;
+  const safeFileName = sanitizeFileName(file.name);
+  const fileExtension = safeFileName.includes(".") ? safeFileName.split(".").pop() : null;
+  const filePath = buildDocumentFilePath(organization.id, validated.data.company_id, documentId, safeFileName);
 
-  // 1. Upload file to storage
   const { error: uploadError } = await supabase.storage
     .from("crm-documents")
-    .upload(filePath, file);
+    .upload(filePath, file, {
+      upsert: false,
+      contentType: file.type || undefined,
+    });
 
   if (uploadError) {
-    logServerError("document.upload.storage", uploadError, { organizationId: organization.id, companyId: validated.data.company_id });
-    return { ok: false, error: "File upload failed. Please try again with the same or a smaller file." };
+    logServerError("document.upload.storage", uploadError, {
+      organizationId: organization.id,
+      companyId: validated.data.company_id,
+      documentId,
+      filePath,
+      fileName: file.name,
+      fileSize: file.size,
+    });
+    return { ok: false, error: getStorageErrorMessage(uploadError) };
   }
 
-  // 2. Insert record into database
   const { error: dbError } = await supabase.from("documents").insert({
     id: documentId,
     organization_id: organization.id,
     ...validated.data,
-    file_name: file.name,
+    file_name: safeFileName,
     file_path: filePath,
     file_size_mb: Number((file.size / (1024 * 1024)).toFixed(2)),
     mime_type: file.type,
@@ -120,8 +247,7 @@ export async function createDocument(formData: FormData): Promise<DocumentAction
   });
 
   if (dbError) {
-    // Cleanup file if DB insert fails
-    await supabase.storage.from("crm-documents").remove([filePath]);
+    await cleanupUploadedFile(supabase, filePath);
     logServerError("document.upload.record", dbError, { organizationId: organization.id, documentId, companyId: validated.data.company_id });
     return { ok: false, error: getSafeErrorMessage(dbError, "The document was uploaded but could not be saved. Please try again.") };
   }
@@ -160,16 +286,11 @@ export async function updateDocument(documentId: string, formData: FormData): Pr
   const validated = documentSchema.safeParse(rawValues);
 
   if (!validated.success) {
-    return {
-      ok: false,
-      error: "Validation failed",
-      fieldErrors: Object.fromEntries(
-        validated.error.errors.map((e) => [e.path[0], e.message])
-      ),
-    };
+    return getValidationFailure(validated.error);
   }
 
-  const file = formData.get("file") as File;
+  const maybeFile = formData.get("file");
+  const file = maybeFile instanceof File ? maybeFile : null;
   let filePath = document.file_path;
   let fileMetadata = {};
 
@@ -181,7 +302,7 @@ export async function updateDocument(documentId: string, formData: FormData): Pr
         projected: fileSizeLimit.projected,
         max: fileSizeLimit.max,
       });
-      return { ok: false, error: fileSizeLimit.message ?? "The selected file is too large for your current plan." };
+      return { ok: false, error: "File is larger than your plan limit." };
     }
 
     const storageLimit = await checkStorageLimit(file.size / (1024 * 1024), Number(document.file_size_mb ?? 0));
@@ -192,32 +313,77 @@ export async function updateDocument(documentId: string, formData: FormData): Pr
         projected: storageLimit.projected,
         max: storageLimit.max,
       });
-      return { ok: false, error: storageLimit.message ?? "Document storage limit reached for your current plan." };
+      return { ok: false, error: storageLimit.message ?? "Document storage limit has been reached for your current plan." };
     }
 
-    // New file uploaded - replace the old one
-    const newFilePath = `${organization.id}/${validated.data.company_id}/${documentId}/${file.name}`;
+    const safeFileName = sanitizeFileName(file.name);
+    const newFilePath = buildDocumentFilePath(organization.id, validated.data.company_id, documentId, safeFileName);
     
     const { error: uploadError } = await supabase.storage
       .from("crm-documents")
-      .upload(newFilePath, file);
+      .upload(newFilePath, file, {
+        upsert: false,
+        contentType: file.type || undefined,
+      });
 
     if (uploadError) {
-      return { ok: false, error: `Upload failed: ${uploadError.message}` };
+      logServerError("document.update.storage", uploadError, {
+        organizationId: organization.id,
+        companyId: validated.data.company_id,
+        documentId,
+        oldFilePath: document.file_path,
+        newFilePath,
+        fileName: file.name,
+        fileSize: file.size,
+      });
+
+      if (newFilePath === document.file_path && uploadError.message?.toLowerCase().includes("already exists")) {
+        const { error: removeCurrentFileError } = await supabase.storage.from("crm-documents").remove([document.file_path]);
+        if (removeCurrentFileError) {
+          logServerError("document.update.remove_current_file_failed", removeCurrentFileError, {
+            organizationId: organization.id,
+            documentId,
+            filePath: document.file_path,
+          });
+          return { ok: false, error: "Upload failed. Please try again." };
+        }
+
+        const retryUpload = await supabase.storage.from("crm-documents").upload(newFilePath, file, {
+          upsert: false,
+          contentType: file.type || undefined,
+        });
+
+        if (retryUpload.error) {
+          logServerError("document.update.storage_retry", retryUpload.error, {
+            organizationId: organization.id,
+            documentId,
+            newFilePath,
+          });
+          return { ok: false, error: getStorageErrorMessage(retryUpload.error) };
+        }
+      } else {
+        return { ok: false, error: getStorageErrorMessage(uploadError) };
+      }
     }
 
-    // Remove old file
     if (newFilePath !== document.file_path) {
-      await supabase.storage.from("crm-documents").remove([document.file_path]);
+      const { error: removeOldFileError } = await supabase.storage.from("crm-documents").remove([document.file_path]);
+      if (removeOldFileError) {
+        logServerError("document.update.remove_old_file_failed", removeOldFileError, {
+          organizationId: organization.id,
+          documentId,
+          filePath: document.file_path,
+        });
+      }
     }
 
     filePath = newFilePath;
     fileMetadata = {
-      file_name: file.name,
+      file_name: safeFileName,
       file_path: filePath,
       file_size_mb: Number((file.size / (1024 * 1024)).toFixed(2)),
       mime_type: file.type,
-      file_extension: file.name.split(".").pop(),
+      file_extension: safeFileName.includes(".") ? safeFileName.split(".").pop() : null,
     };
     
     await insertActivityLog("file_replaced", "document", documentId, { title: validated.data.title });
@@ -235,6 +401,11 @@ export async function updateDocument(documentId: string, formData: FormData): Pr
     .eq("organization_id", organization.id);
 
   if (dbError) {
+    logServerError("document.update.record", dbError, {
+      organizationId: organization.id,
+      documentId,
+      companyId: validated.data.company_id,
+    });
     return { ok: false, error: dbError.message };
   }
 
@@ -288,6 +459,14 @@ export async function logDocumentDownload(documentId: string): Promise<void> {
   await insertActivityLog("downloaded", "document", documentId);
 }
 
+export async function getSignedDocumentDownloadUrl(documentId: string) {
+  return createSignedDocumentUrl(documentId, 900);
+}
+
+export async function getSignedDocumentViewUrl(documentId: string) {
+  return createSignedDocumentUrl(documentId, 900);
+}
+
 export async function deleteDocument(documentId: string): Promise<DocumentActionState> {
   const { organization, document } = await validateDocumentOwnership(documentId);
   const supabase = await createClient();
@@ -298,7 +477,8 @@ export async function deleteDocument(documentId: string): Promise<DocumentAction
     .remove([document.file_path]);
 
   if (storageError) {
-    return { ok: false, error: storageError.message };
+    logServerError("document.delete.storage", storageError, { organizationId: organization.id, documentId, filePath: document.file_path });
+    return { ok: false, error: "Unable to remove the stored file. Please try again." };
   }
 
   // 2. Delete record from database
@@ -316,19 +496,4 @@ export async function deleteDocument(documentId: string): Promise<DocumentAction
   revalidatePath(`/companies/${document.company_id}`);
 
   return { ok: true };
-}
-
-export async function getSignedDocumentUrl(filePath: string) {
-  const supabase = await createClient();
-  
-  const { data, error } = await supabase
-    .storage
-    .from("crm-documents")
-    .createSignedUrl(filePath, 3600); // 1 hour
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return data.signedUrl;
 }

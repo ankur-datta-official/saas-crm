@@ -25,6 +25,14 @@ async function insertActivityLog(action: string, entityType: string, entityId: s
   });
 }
 
+function getValidationFailure(error: z.ZodError): CrmActionState {
+  return {
+    ok: false,
+    error: error.errors[0]?.message ?? "Please check the form and try again.",
+    fieldErrors: Object.fromEntries(error.errors.map((issue) => [String(issue.path[0]), issue.message])),
+  };
+}
+
 async function validateFollowupOwnership(followupId: string) {
   const organization = await requireOrganization();
   const supabase = await createClient();
@@ -52,13 +60,7 @@ export async function createFollowup(formData: FormData): Promise<CrmActionState
   const validated = followupSchema.safeParse(rawValues);
 
   if (!validated.success) {
-    return {
-      ok: false,
-      error: validated.error.errors[0]?.message || "Validation failed",
-      fieldErrors: Object.fromEntries(
-        validated.error.errors.map((e) => [e.path[0], e.message])
-      ),
-    };
+    return getValidationFailure(validated.error);
   }
 
   const { data, error } = await supabase
@@ -104,13 +106,7 @@ export async function updateFollowup(followupId: string, formData: FormData): Pr
   const validated = followupSchema.safeParse(rawValues);
 
   if (!validated.success) {
-    return {
-      ok: false,
-      error: validated.error.errors[0]?.message || "Validation failed",
-      fieldErrors: Object.fromEntries(
-        validated.error.errors.map((e) => [e.path[0], e.message])
-      ),
-    };
+    return getValidationFailure(validated.error);
   }
 
   const { error } = await supabase

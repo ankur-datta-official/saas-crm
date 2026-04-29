@@ -8,12 +8,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FormActionBar, FormContextHint, FormRequiredNote } from "@/components/shared/form-helpers";
+import { FormActionBar, FormContextHint, FormRequiredNote, FormSection } from "@/components/shared/form-helpers";
 import { createHelpRequest, updateHelpRequest } from "@/lib/crm/help-request-actions";
-import { helpRequestSchema, helpRequestTypeOptions, helpRequestPriorityOptions, helpRequestStatusOptions } from "@/lib/crm/schemas";
+import { helpRequestSchema, helpRequestTypeOptions, helpRequestPriorityOptions, helpRequestStatusOptions, type HelpRequestFormValues } from "@/lib/crm/schemas";
 import type { Company, ContactPerson, Interaction, Followup, Document, HelpRequest, TeamMemberOption } from "@/lib/crm/types";
 
 type HelpRequestFormProps = {
@@ -51,7 +50,7 @@ export function HelpRequestForm({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isPending, startTransition] = useTransition();
 
-  const form = useForm({
+  const form = useForm<HelpRequestFormValues>({
     resolver: zodResolver(helpRequestSchema),
     defaultValues: {
       company_id: helpRequest?.company_id ?? defaultCompanyId ?? "",
@@ -74,8 +73,9 @@ export function HelpRequestForm({
   const availableInteractions = interactions.filter((i) => i.company_id === selectedCompanyId);
   const availableFollowups = followups.filter((f) => f.company_id === selectedCompanyId);
   const availableDocuments = documents.filter((d) => d.company_id === selectedCompanyId);
+  const selectedStatus = form.watch("status");
 
-  function onSubmit(values: any, mode: "save" | "addAnother" = "save") {
+  function onSubmit(values: HelpRequestFormValues, mode: "save" | "addAnother" = "save") {
     setServerError(null);
     setSuccessMessage(null);
     setFieldErrors({});
@@ -124,7 +124,7 @@ export function HelpRequestForm({
 
   return (
     <form className="space-y-5" onSubmit={form.handleSubmit((values) => onSubmit(values, "save"))}>
-      <FormRequiredNote message="Company, help type, and title are required. Use the optional sections when you need to link the request to other CRM records or assign internal ownership." />
+      <FormRequiredNote message="Company, help type, title, priority, and status are required. Use the optional sections when you need to link the request to other CRM records or assign internal ownership." />
       {(defaultCompanyId || defaultContactId || defaultInteractionId || defaultFollowupId || defaultDocumentId) && !helpRequest ? (
         <FormContextHint message="This request was opened from an existing CRM record, so related context has been preselected where possible." />
       ) : null}
@@ -160,9 +160,23 @@ export function HelpRequestForm({
         <Field label="Title" required error={form.formState.errors.title?.message} className="md:col-span-2">
           <Input {...form.register("title")} placeholder="e.g., Need pricing approval for large order" className="w-full" />
         </Field>
+        <SelectField label="Priority" required {...form.register("priority")}>
+          {helpRequestPriorityOptions.map((p) => (
+            <option key={p} value={p} className="capitalize">
+              {p}
+            </option>
+          ))}
+        </SelectField>
+        <SelectField label="Status" required {...form.register("status")}>
+          {helpRequestStatusOptions.map((s) => (
+            <option key={s} value={s} className="capitalize">
+              {s.replace("_", " ")}
+            </option>
+          ))}
+        </SelectField>
       </FormSection>
 
-      <CollapsibleSection title="Related CRM Context" description="Link this request to existing records for better context.">
+      <FormSection title="Related CRM Context" description="Link this request to existing records for better context." optional>
         <SelectField label="Contact Person" error={fieldErrors.contact_person_id} {...form.register("contact_person_id")}>
           <option value="">No contact selected</option>
           {availableContacts.map((c) => (
@@ -198,9 +212,9 @@ export function HelpRequestForm({
             </option>
           ))}
         </SelectField>
-      </CollapsibleSection>
+      </FormSection>
 
-      <CollapsibleSection title="Assignment & Priority" description="Set who should handle this and how urgent it is.">
+      <FormSection title="Assignment & Priority" description="Set who should handle this and how urgent it is." optional>
         <SelectField label="Assigned To" error={fieldErrors.assigned_to} {...form.register("assigned_to")}>
           <option value="">Unassigned</option>
           {teamMembers.map((m) => (
@@ -209,27 +223,9 @@ export function HelpRequestForm({
             </option>
           ))}
         </SelectField>
+      </FormSection>
 
-        <SelectField label="Priority" {...form.register("priority")}>
-          {helpRequestPriorityOptions.map((p) => (
-            <option key={p} value={p} className="capitalize">
-              {p}
-            </option>
-          ))}
-        </SelectField>
-
-        {helpRequest && (
-          <SelectField label="Status" {...form.register("status")}>
-            {helpRequestStatusOptions.map((s) => (
-              <option key={s} value={s} className="capitalize">
-                {s.replace("_", " ")}
-              </option>
-            ))}
-          </SelectField>
-        )}
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Details" description="Additional information about this help request." columns="grid-cols-1">
+      <FormSection title="Details" description="Additional information about this help request." optional contentClassName="grid-cols-1">
         <div className="space-y-2">
           <Label htmlFor="description">Description</Label>
           <textarea
@@ -240,7 +236,7 @@ export function HelpRequestForm({
           />
         </div>
 
-        {helpRequest && (helpRequest.status === "resolved" || helpRequest.status === "rejected") && (
+        {(selectedStatus === "resolved" || selectedStatus === "rejected") && (
           <div className="space-y-2">
             <Label htmlFor="resolution_note">Resolution Note</Label>
             <textarea
@@ -251,7 +247,7 @@ export function HelpRequestForm({
             />
           </div>
         )}
-      </CollapsibleSection>
+      </FormSection>
 
       {serverError && <p className="rounded-md bg-rose-50 p-3 text-sm text-rose-700">{serverError}</p>}
       {successMessage && <p className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">{successMessage}</p>}
@@ -276,47 +272,6 @@ export function HelpRequestForm({
         )}
       </FormActionBar>
     </form>
-  );
-}
-
-function FormSection({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">{children}</CardContent>
-    </Card>
-  );
-}
-
-function CollapsibleSection({
-  title,
-  description,
-  children,
-  columns = "grid-cols-1 md:grid-cols-2 xl:grid-cols-4",
-}: {
-  title: string;
-  description: string;
-  children: React.ReactNode;
-  columns?: string;
-}) {
-  return (
-    <details className="rounded-xl border bg-card shadow-soft" open={false}>
-      <summary className="cursor-pointer list-none p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h3 className="font-semibold">{title}</h3>
-            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-          </div>
-          <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
-            Optional
-          </span>
-        </div>
-      </summary>
-      <div className={`grid gap-4 p-5 pt-0 ${columns}`}>{children}</div>
-    </details>
   );
 }
 

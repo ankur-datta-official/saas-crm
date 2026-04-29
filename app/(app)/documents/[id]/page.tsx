@@ -1,20 +1,18 @@
 import { notFound } from "next/navigation";
 import {
-  FileText,
   Calendar,
   User,
   Building2,
-  History,
-  FileIcon,
   MessageSquare,
   Clock,
   Link as LinkIcon,
   Plus
 } from "lucide-react";
 import { getDocumentById } from "@/lib/crm/document-queries";
+import { getSignedDocumentViewUrl } from "@/lib/crm/document-actions";
 import { DocumentDetailHeader } from "@/components/crm/document-detail-header";
+import { DocumentPreviewCard } from "@/components/crm/document-preview-card";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
@@ -34,12 +32,22 @@ export default async function DocumentDetailPage({ params }: { params: Promise<{
     notFound();
   }
 
+  let signedViewUrl: string | null = null;
+  try {
+    const signedView = await getSignedDocumentViewUrl(document.id);
+    signedViewUrl = signedView.signedUrl;
+  } catch {
+    signedViewUrl = null;
+  }
+
   return (
     <div className="space-y-6">
       <DocumentDetailHeader document={document} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
+          <DocumentPreviewCard document={document} signedViewUrl={signedViewUrl} />
+
           <Card>
             <CardHeader>
               <CardTitle>Document Details</CardTitle>

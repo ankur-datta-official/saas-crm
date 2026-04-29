@@ -57,7 +57,7 @@ export function RoleForm({ selectedRole, canManage, onSaved }: RoleFormProps) {
       <FormRequiredNote message="Only the role name is required. Add a short description if you want other admins to understand when this role should be used." />
       {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{error}</div> : null}
       <div className="space-y-2">
-        <Label htmlFor="role-name">Role Name</Label>
+        <Label htmlFor="role-name">Role Name <span className="text-destructive">*</span></Label>
         <Input
           id="role-name"
           value={name}

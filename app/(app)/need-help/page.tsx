@@ -31,7 +31,7 @@ export default async function NeedHelpPage({
           </Button>
         }
       />
-      <GuidanceStrip>
+      <GuidanceStrip dismissible storageKey="crm-tip-need-help">
         Use this module when a deal is blocked and another teammate or manager needs to step in.
       </GuidanceStrip>
 

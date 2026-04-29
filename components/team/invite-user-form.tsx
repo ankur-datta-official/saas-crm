@@ -5,7 +5,7 @@ import { CheckCircle2, Link2, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FormRequiredNote } from "@/components/shared/form-helpers";
+import { FormRequiredNote, FormSection } from "@/components/shared/form-helpers";
 import {
   Dialog,
   DialogContent,
@@ -125,7 +125,7 @@ export function InviteUserForm({ roles, disabled = false }: InviteUserFormProps)
           <form className="space-y-4" onSubmit={handleSubmit}>
             <FormRequiredNote message="Email and role are required. Full name, designation, department, and phone can be added now or later." />
             {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{error}</div> : null}
-            <div className="grid gap-4 md:grid-cols-2">
+            <FormSection title="Basic Information" description="Invite details and initial role assignment." contentClassName="md:grid-cols-2" className="border-none shadow-none">
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="team-email">Email <span className="text-destructive">*</span></Label>
                 <Input
@@ -152,50 +152,45 @@ export function InviteUserForm({ roles, disabled = false }: InviteUserFormProps)
                   </SelectContent>
                 </Select>
               </div>
-              <details className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 md:col-span-2">
-                <summary className="cursor-pointer list-none text-sm font-medium text-slate-700">
-                  Optional profile details
-                </summary>
-                <div className="mt-4 grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="team-full-name">Full Name</Label>
-                    <Input
-                      id="team-full-name"
-                      value={form.fullName}
-                      onChange={(event) => setForm((current) => ({ ...current, fullName: event.target.value }))}
-                      placeholder="Amina Rahman"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="team-job-title">Designation</Label>
-                    <Input
-                      id="team-job-title"
-                      value={form.jobTitle}
-                      onChange={(event) => setForm((current) => ({ ...current, jobTitle: event.target.value }))}
-                      placeholder="Sales Executive"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="team-department">Department</Label>
-                    <Input
-                      id="team-department"
-                      value={form.department}
-                      onChange={(event) => setForm((current) => ({ ...current, department: event.target.value }))}
-                      placeholder="Sales"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="team-phone">Phone</Label>
-                    <Input
-                      id="team-phone"
-                      value={form.phone}
-                      onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
-                      placeholder="+8801XXXXXXXXX"
-                    />
-                  </div>
-                </div>
-              </details>
-            </div>
+            </FormSection>
+            <FormSection title="Optional Profile Details" description="Profile details can be added now for cleaner team setup." optional contentClassName="md:grid-cols-2" className="border-none shadow-none">
+              <div className="space-y-2">
+                <Label htmlFor="team-full-name">Full Name</Label>
+                <Input
+                  id="team-full-name"
+                  value={form.fullName}
+                  onChange={(event) => setForm((current) => ({ ...current, fullName: event.target.value }))}
+                  placeholder="Amina Rahman"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="team-job-title">Designation</Label>
+                <Input
+                  id="team-job-title"
+                  value={form.jobTitle}
+                  onChange={(event) => setForm((current) => ({ ...current, jobTitle: event.target.value }))}
+                  placeholder="Sales Executive"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="team-department">Department</Label>
+                <Input
+                  id="team-department"
+                  value={form.department}
+                  onChange={(event) => setForm((current) => ({ ...current, department: event.target.value }))}
+                  placeholder="Sales"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="team-phone">Phone</Label>
+                <Input
+                  id="team-phone"
+                  value={form.phone}
+                  onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
+                  placeholder="+8801XXXXXXXXX"
+                />
+              </div>
+            </FormSection>
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
                 Cancel

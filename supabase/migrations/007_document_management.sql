@@ -133,10 +133,14 @@ CREATE TRIGGER validate_document_relations_trigger
 -- Bucket: crm-documents
 -- Folder structure: organization_id/company_id/document_id/original-file-name
 
--- Note: Storage RLS policies should be added in Supabase Dashboard or via SQL if possible.
--- Example SQL for Storage RLS (if bucket exists):
+-- Note: Storage RLS policies should be added after creating the bucket.
+-- Recommended SQL for Storage RLS (if bucket exists):
 -- insert into storage.buckets (id, name, public) values ('crm-documents', 'crm-documents', false);
 -- create policy "Authenticated users can upload documents to their organization folder"
 -- on storage.objects for insert to authenticated with check (
+--   bucket_id = 'crm-documents' AND (storage.foldername(name))[1] = (select organization_id::text from public.profiles where id = auth.uid())
+-- );
+-- create policy "Authenticated users can read documents from their organization folder"
+-- on storage.objects for select to authenticated using (
 --   bucket_id = 'crm-documents' AND (storage.foldername(name))[1] = (select organization_id::text from public.profiles where id = auth.uid())
 -- );

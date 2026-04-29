@@ -10,9 +10,10 @@ import { cn } from "@/lib/utils";
 type AppSidebarProps = {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  organizationName?: string;
 };
 
-export function AppSidebar({ open = false, onOpenChange }: AppSidebarProps) {
+export function AppSidebar({ open = false, onOpenChange, organizationName }: AppSidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -68,7 +69,7 @@ export function AppSidebar({ open = false, onOpenChange }: AppSidebarProps) {
         <div className="shrink-0 border-t border-slate-200 p-4">
           <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3 transition-all duration-200 hover:border-slate-300 hover:bg-slate-50">
             <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Workspace</p>
-            <p className="mt-1 truncate text-sm font-medium text-slate-900">Acme Enterprise</p>
+            <p className="mt-1 truncate text-sm font-medium text-slate-900">{organizationName ?? "Sales Workspace"}</p>
           </div>
         </div>
       </aside>

@@ -1,6 +1,7 @@
 "use client";
 
 import { ReportDataTable } from "./report-data-table";
+import { ReportMetricCard } from "./report-visuals";
 import type { TeamPerformanceReportData } from "@/lib/crm/report-queries";
 import { formatCurrency } from "@/lib/crm/utils";
 
@@ -42,28 +43,25 @@ export function TeamPerformanceReport({ data }: { data: TeamPerformanceReportDat
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Team Members</p>
-          <p className="mt-2 text-3xl font-bold">{data.teamStats.length}</p>
-        </div>
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Top Performer (Value)</p>
-          <p className="mt-2 text-xl font-bold truncate">
-            {[...data.teamStats].sort((a, b) => b.pipelineValueManaged - a.pipelineValueManaged)[0]?.userName || "N/A"}
-          </p>
-        </div>
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Top Performer (Meetings)</p>
-          <p className="mt-2 text-xl font-bold truncate">
-            {[...data.teamStats].sort((a, b) => b.meetingsCreated - a.meetingsCreated)[0]?.userName || "N/A"}
-          </p>
-        </div>
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Highest Follow-up Rate</p>
-          <p className="mt-2 text-xl font-bold truncate">
-            {[...data.teamStats].sort((a, b) => (b.followupsCompleted / (b.followupsCreated || 1)) - (a.followupsCompleted / (a.followupsCreated || 1)))[0]?.userName || "N/A"}
-          </p>
-        </div>
+        <ReportMetricCard title="Total Team Members" value={String(data.teamStats.length)} detail="Active users included in this report" tone="slate" />
+        <ReportMetricCard
+          title="Top Performer (Value)"
+          value={[...data.teamStats].sort((a, b) => b.pipelineValueManaged - a.pipelineValueManaged)[0]?.userName || "N/A"}
+          detail="Highest owned pipeline value"
+          tone="teal"
+        />
+        <ReportMetricCard
+          title="Top Performer (Meetings)"
+          value={[...data.teamStats].sort((a, b) => b.meetingsCreated - a.meetingsCreated)[0]?.userName || "N/A"}
+          detail="Most meetings logged"
+          tone="sky"
+        />
+        <ReportMetricCard
+          title="Highest Follow-up Rate"
+          value={[...data.teamStats].sort((a, b) => (b.followupsCompleted / (b.followupsCreated || 1)) - (a.followupsCompleted / (a.followupsCreated || 1)))[0]?.userName || "N/A"}
+          detail="Best completion ratio"
+          tone="amber"
+        />
       </div>
 
       <ReportDataTable 

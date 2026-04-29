@@ -10,9 +10,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { DocumentTypeBadge, DocumentStatusBadge } from "@/components/crm/document-badges";
 import type { Document } from "@/lib/crm/types";
-import { archiveDocument, getSignedDocumentUrl } from "@/lib/crm/document-actions";
+import { archiveDocument } from "@/lib/crm/document-actions";
+import { useDocumentDownload } from "./document-download";
 
 export function DocumentCard({ document }: { document: Document }) {
+  const { downloadDocument, downloadingDocumentId } = useDocumentDownload();
+  const isDownloading = downloadingDocumentId === document.id;
+
   return (
     <Card className="overflow-hidden border-l-4 border-l-primary">
       <CardContent className="p-4">
@@ -67,6 +71,10 @@ export function DocumentCard({ document }: { document: Document }) {
               <DropdownMenuContent align="end" className="w-40">
                 <DropdownMenuItem asChild>
                   <Link href={`/documents/${document.id}`}>View Details</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => void downloadDocument(document.id)} disabled={isDownloading}>
+                  <Download className="mr-2 h-4 w-4" />
+                  {isDownloading ? "Downloading..." : "Download"}
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href={`/documents/${document.id}/edit`}>Edit Metadata</Link>

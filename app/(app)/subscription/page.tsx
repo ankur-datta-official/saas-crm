@@ -43,7 +43,7 @@ export default async function SubscriptionPage() {
         title="Subscription"
         description="Review plan packaging, workspace usage, limits, and feature availability."
       />
-      <GuidanceStrip>
+      <GuidanceStrip dismissible storageKey="crm-tip-subscription">
         Review your current plan, usage limits, and feature access here. Manual plan switching is only for internal testing when enabled.
       </GuidanceStrip>
 

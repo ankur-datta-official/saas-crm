@@ -1,9 +1,11 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { Calendar, User, Building2, Layers, Thermometer, Tag, Search, X } from "lucide-react";
+import { Calendar, ChevronDown, ChevronUp, Layers, Search, Thermometer, User, Building2, Tag, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -36,6 +38,11 @@ export function ReportFilterBar({ users, industries, stages, categories }: Repor
   const [pipelineStageId, setPipelineStageId] = useState(searchParams.get("pipelineStageId") || "all");
   const [leadTemperature, setLeadTemperature] = useState(searchParams.get("leadTemperature") || "all");
   const [companyCategoryId, setCompanyCategoryId] = useState(searchParams.get("companyCategoryId") || "all");
+  const [showMoreFilters, setShowMoreFilters] = useState(
+    searchParams.get("pipelineStageId") !== null
+      || searchParams.get("leadTemperature") !== null
+      || searchParams.get("companyCategoryId") !== null,
+  );
 
   const applyFilters = () => {
     const params = new URLSearchParams(searchParams);
@@ -71,138 +78,159 @@ export function ReportFilterBar({ users, industries, stages, categories }: Repor
     router.push(pathname);
   };
 
+  const advancedFilterCount = [pipelineStageId, leadTemperature, companyCategoryId].filter((value) => value !== "all").length;
+
   return (
-    <div className="crm-filter-surface print:hidden">
-      <div className="flex flex-wrap items-end gap-3">
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-          <Calendar className="size-3.5" /> Date Range
-        </label>
-        <Select value={dateRange} onValueChange={setDateRange}>
-          <SelectTrigger className="w-[160px] h-9 text-xs">
-            <SelectValue placeholder="Select period" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="today">Today</SelectItem>
-            <SelectItem value="this_week">This Week</SelectItem>
-            <SelectItem value="this_month">This Month</SelectItem>
-            <SelectItem value="last_30_days">Last 30 Days</SelectItem>
-            <SelectItem value="this_quarter">This Quarter</SelectItem>
-            <SelectItem value="custom" disabled>Custom range</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-          <User className="size-3.5" /> Assigned User
-        </label>
-        <Select value={assignedUserId} onValueChange={setAssignedUserId}>
-          <SelectTrigger className="w-[160px] h-9 text-xs">
-            <SelectValue placeholder="All Users" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Users</SelectItem>
-            {users.map((user) => (
-              <SelectItem key={user.id} value={user.id}>
-                {user.full_name || user.email}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-          <Building2 className="size-3.5" /> Industry
-        </label>
-        <Select value={industryId} onValueChange={setIndustryId}>
-          <SelectTrigger className="w-[160px] h-9 text-xs">
-            <SelectValue placeholder="All Industries" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Industries</SelectItem>
-            {industries.map((industry) => (
-              <SelectItem key={industry.id} value={industry.id}>
-                {industry.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <Button onClick={applyFilters} size="sm" className="h-9 px-4">
-          <Search className="mr-2 size-3.5" /> Filter
-        </Button>
-        <Button onClick={clearFilters} variant="outline" size="sm" className="h-9 px-3">
-          <X className="mr-2 size-3.5" /> Reset
-        </Button>
-      </div>
-      </div>
-
-      <details className="mt-4">
-        <summary className="cursor-pointer list-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700">
-          More filters
-        </summary>
-        <div className="mt-3 flex flex-wrap items-end gap-3">
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-              <Layers className="size-3.5" /> Pipeline Stage
-            </label>
-            <Select value={pipelineStageId} onValueChange={setPipelineStageId}>
-              <SelectTrigger className="w-[160px] h-9 text-xs">
-                <SelectValue placeholder="All Stages" />
+    <Card className="border-slate-200 bg-white shadow-soft print:hidden">
+      <CardContent className="space-y-4 p-4">
+        <div className="grid gap-3 xl:grid-cols-[minmax(150px,170px)_minmax(170px,190px)_minmax(160px,180px)_auto]">
+          <FilterField label="Date Range" icon={<Calendar className="size-3.5" />}>
+            <Select value={dateRange} onValueChange={setDateRange}>
+              <SelectTrigger className="h-10 text-xs">
+                <SelectValue placeholder="Select period" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Stages</SelectItem>
-                {stages.map((stage) => (
-                  <SelectItem key={stage.id} value={stage.id}>
-                    {stage.name}
+                <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="this_week">This Week</SelectItem>
+                <SelectItem value="this_month">This Month</SelectItem>
+                <SelectItem value="last_30_days">Last 30 Days</SelectItem>
+                <SelectItem value="this_quarter">This Quarter</SelectItem>
+                <SelectItem value="custom" disabled>Custom range</SelectItem>
+              </SelectContent>
+            </Select>
+          </FilterField>
+
+          <FilterField label="Assigned User" icon={<User className="size-3.5" />}>
+            <Select value={assignedUserId} onValueChange={setAssignedUserId}>
+              <SelectTrigger className="h-10 text-xs">
+                <SelectValue placeholder="All Users" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Users</SelectItem>
+                {users.map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.full_name || user.email}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </FilterField>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-              <Thermometer className="size-3.5" /> Temperature
-            </label>
-            <Select value={leadTemperature} onValueChange={setLeadTemperature}>
-              <SelectTrigger className="w-[140px] h-9 text-xs">
-                <SelectValue placeholder="All" />
+          <FilterField label="Industry" icon={<Building2 className="size-3.5" />}>
+            <Select value={industryId} onValueChange={setIndustryId}>
+              <SelectTrigger className="h-10 text-xs">
+                <SelectValue placeholder="All Industries" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="cold">Cold</SelectItem>
-                <SelectItem value="warm">Warm</SelectItem>
-                <SelectItem value="hot">Hot</SelectItem>
-                <SelectItem value="very_hot">Very Hot</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-              <Tag className="size-3.5" /> Category
-            </label>
-            <Select value={companyCategoryId} onValueChange={setCompanyCategoryId}>
-              <SelectTrigger className="w-[140px] h-9 text-xs">
-                <SelectValue placeholder="All" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name}
+                <SelectItem value="all">All Industries</SelectItem>
+                {industries.map((industry) => (
+                  <SelectItem key={industry.id} value={industry.id}>
+                    {industry.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+          </FilterField>
+
+          <div className="flex flex-wrap items-end gap-2 xl:justify-end">
+            <Button onClick={applyFilters} size="sm" className="h-10 px-4">
+              <Search className="mr-2 size-3.5" />
+              Filter
+            </Button>
+            <Button onClick={clearFilters} variant="outline" size="sm" className="h-10 px-4">
+              <X className="mr-2 size-3.5" />
+              Reset
+            </Button>
           </div>
         </div>
-      </details>
+
+        <div className="flex flex-wrap items-center gap-3 border-t border-slate-100 pt-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-9 rounded-xl"
+            onClick={() => setShowMoreFilters((current) => !current)}
+          >
+            <Layers className="mr-2 size-3.5" />
+            More filters
+            {advancedFilterCount > 0 ? <span className="ml-1 text-xs text-primary">({advancedFilterCount})</span> : null}
+            {showMoreFilters ? <ChevronUp className="ml-2 size-3.5" /> : <ChevronDown className="ml-2 size-3.5" />}
+          </Button>
+          <p className="text-xs text-slate-500">Use more filters for stage, temperature, and category slices.</p>
+        </div>
+
+        {showMoreFilters ? (
+          <div className="grid gap-3 rounded-2xl border border-slate-100 bg-slate-50/60 p-3 md:grid-cols-3">
+            <FilterField label="Pipeline Stage" icon={<Layers className="size-3.5" />}>
+              <Select value={pipelineStageId} onValueChange={setPipelineStageId}>
+                <SelectTrigger className="h-10 text-xs">
+                  <SelectValue placeholder="All Stages" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Stages</SelectItem>
+                  {stages.map((stage) => (
+                    <SelectItem key={stage.id} value={stage.id}>
+                      {stage.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FilterField>
+
+            <FilterField label="Temperature" icon={<Thermometer className="size-3.5" />}>
+              <Select value={leadTemperature} onValueChange={setLeadTemperature}>
+                <SelectTrigger className="h-10 text-xs">
+                  <SelectValue placeholder="All" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="cold">Cold</SelectItem>
+                  <SelectItem value="warm">Warm</SelectItem>
+                  <SelectItem value="hot">Hot</SelectItem>
+                  <SelectItem value="very_hot">Very Hot</SelectItem>
+                </SelectContent>
+              </Select>
+            </FilterField>
+
+            <FilterField label="Category" icon={<Tag className="size-3.5" />}>
+              <Select value={companyCategoryId} onValueChange={setCompanyCategoryId}>
+                <SelectTrigger className="h-10 text-xs">
+                  <SelectValue placeholder="All" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FilterField>
+          </div>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+function FilterField({
+  label,
+  icon,
+  children,
+}: {
+  label: string;
+  icon: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
+        {icon}
+        {label}
+      </label>
+      {children}
     </div>
   );
 }

@@ -41,7 +41,7 @@ export default async function TeamPage() {
         description="Manage organization members, invitation links, roles, and CRM access permissions."
         actions={canInvite ? <InviteUserForm roles={roles} /> : undefined}
       />
-      <GuidanceStrip>
+      <GuidanceStrip dismissible storageKey="crm-tip-team">
         Invitation links can be copied and shared manually when an email provider is not connected yet.
       </GuidanceStrip>
 

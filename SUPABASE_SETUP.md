@@ -87,6 +87,168 @@ Recommended folder pattern:
 organization_id/company_id/document_id/original-file-name
 ```
 
+Recommended Storage SQL and policy setup:
+
+```sql
+insert into storage.buckets (id, name, public)
+values ('crm-documents', 'crm-documents', false)
+on conflict (id) do nothing;
+
+create policy "CRM documents upload by organization folder"
+on storage.objects
+for insert
+to authenticated
+with check (
+  bucket_id = 'crm-documents'
+  and (storage.foldername(name))[1] = (
+    select organization_id::text
+    from public.profiles
+    where id = auth.uid()
+  )
+);
+
+create policy "CRM documents read by organization folder"
+on storage.objects
+for select
+to authenticated
+using (
+  bucket_id = 'crm-documents'
+  and (storage.foldername(name))[1] = (
+    select organization_id::text
+    from public.profiles
+    where id = auth.uid()
+  )
+);
+
+create policy "CRM documents update by organization folder"
+on storage.objects
+for update
+to authenticated
+using (
+  bucket_id = 'crm-documents'
+  and (storage.foldername(name))[1] = (
+    select organization_id::text
+    from public.profiles
+    where id = auth.uid()
+  )
+)
+with check (
+  bucket_id = 'crm-documents'
+  and (storage.foldername(name))[1] = (
+    select organization_id::text
+    from public.profiles
+    where id = auth.uid()
+  )
+);
+
+create policy "CRM documents delete by organization folder"
+on storage.objects
+for delete
+to authenticated
+using (
+  bucket_id = 'crm-documents'
+  and (storage.foldername(name))[1] = (
+    select organization_id::text
+    from public.profiles
+    where id = auth.uid()
+  )
+);
+```
+
+Troubleshooting notes:
+
+- If uploads fail with "Storage bucket not found. Please create crm-documents bucket.", create the bucket first.
+- If uploads fail with a permission message, verify the storage policies above are present.
+- Downloads in the CRM use signed URLs, so keep the bucket private.
+
+### Profile avatar bucket
+
+Create a private storage bucket named:
+
+```bash
+profile-avatars
+```
+
+Recommended folder pattern:
+
+```bash
+organization_id/profile_id/avatar-file-name
+```
+
+Recommended Storage SQL and policy setup:
+
+```sql
+insert into storage.buckets (id, name, public)
+values ('profile-avatars', 'profile-avatars', false)
+on conflict (id) do nothing;
+
+create policy "Profile avatars upload by organization folder"
+on storage.objects
+for insert
+to authenticated
+with check (
+  bucket_id = 'profile-avatars'
+  and (storage.foldername(name))[1] = (
+    select organization_id::text
+    from public.profiles
+    where id = auth.uid()
+  )
+);
+
+create policy "Profile avatars read by organization folder"
+on storage.objects
+for select
+to authenticated
+using (
+  bucket_id = 'profile-avatars'
+  and (storage.foldername(name))[1] = (
+    select organization_id::text
+    from public.profiles
+    where id = auth.uid()
+  )
+);
+
+create policy "Profile avatars update by organization folder"
+on storage.objects
+for update
+to authenticated
+using (
+  bucket_id = 'profile-avatars'
+  and (storage.foldername(name))[1] = (
+    select organization_id::text
+    from public.profiles
+    where id = auth.uid()
+  )
+)
+with check (
+  bucket_id = 'profile-avatars'
+  and (storage.foldername(name))[1] = (
+    select organization_id::text
+    from public.profiles
+    where id = auth.uid()
+  )
+);
+
+create policy "Profile avatars delete by organization folder"
+on storage.objects
+for delete
+to authenticated
+using (
+  bucket_id = 'profile-avatars'
+  and (storage.foldername(name))[1] = (
+    select organization_id::text
+    from public.profiles
+    where id = auth.uid()
+  )
+);
+```
+
+Troubleshooting notes:
+
+- If profile photo upload fails with "Storage bucket not found. Please create profile-avatars bucket.", create the bucket first.
+- If profile photo upload fails with a permission message, verify the storage policies above are present.
+- Profile photos are displayed through signed URLs, so keep the bucket private.
+
 ## 5. Core verification flow
 
 1. Run `npm run dev`.
@@ -196,7 +358,19 @@ GET /api/cron/followup-reminders?secret=test-secret
 9. Confirm activity logs contain `company.pipeline_stage_changed`.
 10. Confirm the board stays readable on mobile or narrower layouts.
 
-## 12. Optional demo data
+## 12. Profile settings manual test
+
+1. Open `/settings/profile`.
+2. Update full name, phone, designation, and department.
+3. Confirm the topbar display name updates after save.
+4. Upload a JPG, PNG, or WEBP avatar under 2MB.
+5. Confirm the avatar appears in the topbar and profile page summary.
+6. Try an invalid file type and confirm it is blocked with a friendly message.
+7. Try a file larger than 2MB and confirm it is blocked with a friendly message.
+8. Remove the avatar and confirm initials appear again.
+9. Confirm email remains read-only.
+
+## 13. Optional demo data
 
 An optional seed file is available at:
 
@@ -206,7 +380,7 @@ supabase/seeds/demo_data.sql
 
 Do not auto-run it in production. Use it only for local demos, staging previews, or QA.
 
-## 13. Final verification
+## 14. Final verification
 
 1. Run `npm run build`.
 2. Run `npm run typecheck`.

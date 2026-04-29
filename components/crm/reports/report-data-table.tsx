@@ -67,12 +67,12 @@ export function ReportDataTable<T extends Record<string, any>>({
   return (
     <div className={cn("space-y-4", className)}>
       <div className="flex items-center justify-between gap-4 print:hidden">
-        {title && <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{title}</h3>}
+        {title ? <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">{title}</h3> : null}
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={exportToCSV} disabled={data.length === 0}>
+          <Button variant="outline" size="sm" className="rounded-xl" onClick={exportToCSV} disabled={data.length === 0}>
             <Download className="mr-2 size-3.5" /> Export CSV
           </Button>
-          <Button variant="outline" size="sm" onClick={handlePrint} disabled={data.length === 0}>
+          <Button variant="outline" size="sm" className="rounded-xl" onClick={handlePrint} disabled={data.length === 0}>
             <Printer className="mr-2 size-3.5" /> Print
           </Button>
         </div>

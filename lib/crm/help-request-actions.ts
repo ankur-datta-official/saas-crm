@@ -29,6 +29,14 @@ async function insertActivityLog(
   });
 }
 
+function getValidationFailure(error: z.ZodError): CrmActionState {
+  return {
+    ok: false,
+    error: error.errors[0]?.message ?? "Please check the form and try again.",
+    fieldErrors: Object.fromEntries(error.errors.map((issue) => [String(issue.path[0]), issue.message])),
+  };
+}
+
 async function validateHelpRequestOwnership(helpRequestId: string) {
   const organization = await requireOrganization();
   const supabase = await createClient();
@@ -58,13 +66,7 @@ export async function createHelpRequest(
   const validated = helpRequestSchema.safeParse(rawValues);
 
   if (!validated.success) {
-    return {
-      ok: false,
-      error: validated.error.errors[0]?.message || "Validation failed",
-      fieldErrors: Object.fromEntries(
-        validated.error.errors.map((e) => [e.path[0], e.message])
-      ),
-    };
+    return getValidationFailure(validated.error);
   }
 
   const { data, error } = await supabase
@@ -110,13 +112,7 @@ export async function updateHelpRequest(
   const validated = helpRequestUpdateSchema.safeParse(rawValues);
 
   if (!validated.success) {
-    return {
-      ok: false,
-      error: validated.error.errors[0]?.message || "Validation failed",
-      fieldErrors: Object.fromEntries(
-        validated.error.errors.map((e) => [e.path[0], e.message])
-      ),
-    };
+    return getValidationFailure(validated.error);
   }
 
   const { error } = await supabase
@@ -137,9 +133,13 @@ export async function updateHelpRequest(
     title: validated.data.title,
   });
 
+  const nextCompanyId = validated.data.company_id ?? helpRequest.company_id;
   revalidatePath("/need-help");
   revalidatePath(`/need-help/${helpRequestId}`);
   revalidatePath(`/companies/${helpRequest.company_id}`);
+  if (nextCompanyId !== helpRequest.company_id) {
+    revalidatePath(`/companies/${nextCompanyId}`);
+  }
 
   return { ok: true, id: helpRequestId };
 }

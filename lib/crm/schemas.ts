@@ -1,40 +1,137 @@
 import { z } from "zod";
 
-const optionalText = z.string().trim().optional().transform((value) => value || null);
-const optionalUuid = z.string().uuid().optional().or(z.literal("")).transform((value) => value || null);
-const optionalEmail = z.preprocess(
-  (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
-  z.string().trim().email("Enter a valid email.").optional(),
+export function emptyToUndefined(value: unknown) {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+
+  if (typeof value === "string" && value.trim() === "") {
+    return undefined;
+  }
+
+  return value;
+}
+
+export function emptyToNull(value: unknown) {
+  const normalized = emptyToUndefined(value);
+  return normalized === undefined ? null : normalized;
+}
+
+function preprocessOptionalText(value: unknown) {
+  const normalized = emptyToUndefined(value);
+  if (normalized === undefined) {
+    return undefined;
+  }
+
+  if (typeof normalized === "string") {
+    return normalized.trim();
+  }
+
+  return normalized;
+}
+
+function preprocessOptionalNumber(value: unknown) {
+  const normalized = emptyToUndefined(value);
+  if (normalized === undefined) {
+    return undefined;
+  }
+
+  if (typeof normalized === "number") {
+    return normalized;
+  }
+
+  if (typeof normalized === "string") {
+    return Number(normalized);
+  }
+
+  return normalized;
+}
+
+export const optionalString = z.preprocess(
+  preprocessOptionalText,
+  z.string({ invalid_type_error: "Please enter a valid value." }).optional(),
 ).transform((value) => value ?? null);
-const optionalUrl = (message: string) => z.preprocess(
-  (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
-  z.string().trim().url(message).optional(),
+
+export const optionalUuid = z.preprocess(
+  emptyToUndefined,
+  z.string().uuid("Please select a valid option.").optional(),
 ).transform((value) => value ?? null);
-const optionalNumber = (schema: z.ZodNumber) => z.preprocess(
-  (value) => (value === "" || value === null || value === undefined ? undefined : value),
-  schema.optional(),
+
+export const optionalEmail = z.preprocess(
+  preprocessOptionalText,
+  z.string().email("Please enter a valid email address.").optional(),
 ).transform((value) => value ?? null);
-const optionalDate = z.preprocess(
-  (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
-  z.string().optional(),
+
+export function optionalUrl(message = "Please enter a valid website URL.") {
+  return z.preprocess(
+    preprocessOptionalText,
+    z.string().url(message).optional(),
+  ).transform((value) => value ?? null);
+}
+
+export function optionalNumber(schema: z.ZodNumber) {
+  return z.preprocess(
+    preprocessOptionalNumber,
+    schema.optional(),
+  ).transform((value) => value ?? null);
+}
+
+export const optionalDate = z.preprocess(
+  preprocessOptionalText,
+  z.string({ invalid_type_error: "Please enter a valid date." }).optional(),
 ).transform((value) => value ?? null);
+
+export const optionalDateTime = z.preprocess(
+  preprocessOptionalText,
+  z.string({ invalid_type_error: "Please enter a valid date and time." }).optional(),
+).transform((value) => value ?? null);
+
 const optionalNumberWithDefault = (schema: z.ZodNumber, fallback: number) => z.preprocess(
   (value) => (value === "" || value === null || value === undefined ? fallback : value),
   schema,
 );
 
-export const statusSchema = z.enum(["active", "inactive", "archived"]);
+const companyPrioritySchema = z.enum(["low", "medium", "high", "urgent"], {
+  invalid_type_error: "Please select a valid option.",
+});
+const leadTemperatureSchema = z.enum(["cold", "warm", "hot", "very_hot"], {
+  invalid_type_error: "Please select a valid option.",
+});
+
+function requiredEnum<const T extends readonly [string, ...string[]]>(values: T, requiredMessage: string) {
+  return z.preprocess(
+    emptyToUndefined,
+    z.enum(values, {
+      required_error: requiredMessage,
+      invalid_type_error: "Please select a valid option.",
+    }),
+  );
+}
+
+function optionalEnum<const T extends readonly [string, ...string[]]>(values: T) {
+  return z.preprocess(
+    emptyToUndefined,
+    z.enum(values, {
+      invalid_type_error: "Please select a valid option.",
+    }).optional(),
+  ).transform((value) => value ?? null);
+}
+
+export const statusSchema = requiredEnum(["active", "inactive", "archived"], "Status is required.");
 
 export const industrySchema = z.object({
   name: z.string().trim().min(2, "Industry name is required."),
-  description: optionalText,
+  description: optionalString,
   status: statusSchema.default("active"),
 });
 
 export const companyCategorySchema = z.object({
   name: z.string().trim().min(2, "Category name is required."),
-  code: z.string().trim().max(12, "Use a short category code.").optional().transform((value) => value || null),
-  description: optionalText,
+  code: z.preprocess(
+    preprocessOptionalText,
+    z.string().max(12, "Use a short category code.").optional(),
+  ).transform((value) => value ?? null),
+  description: optionalString,
   priority_level: optionalNumberWithDefault(z.coerce.number().int().min(1).max(5), 3),
   status: statusSchema.default("active"),
 });
@@ -53,23 +150,29 @@ export const companySchema = z.object({
   name: z.string().trim().min(2, "Company name is required."),
   industry_id: optionalUuid,
   category_id: optionalUuid,
-  lead_source: optionalText,
-  priority: z.enum(["low", "medium", "high", "urgent"]),
+  lead_source: optionalString,
+  priority: z.preprocess(emptyToUndefined, companyPrioritySchema.optional()).transform((value) => value ?? "medium"),
   assigned_user_id: optionalUuid,
-  pipeline_stage_id: optionalUuid,
-  status: statusSchema.default("active"),
-  phone: optionalText,
-  whatsapp: optionalText,
+  pipeline_stage_id: z.preprocess(
+    emptyToUndefined,
+    z.string({
+      required_error: "Pipeline stage is required.",
+      invalid_type_error: "Pipeline stage is required.",
+    }).uuid("Please select a valid option."),
+  ),
+  status: statusSchema,
+  phone: optionalString,
+  whatsapp: optionalString,
   email: optionalEmail,
-  website: optionalUrl("Enter a valid URL including https://."),
-  address: optionalText,
-  city: optionalText,
-  country: optionalText,
+  website: optionalUrl(),
+  address: optionalString,
+  city: optionalString,
+  country: optionalString,
   success_rating: optionalNumber(z.coerce.number().int().min(1, "Success rating must be between 1 and 10.").max(10, "Success rating must be between 1 and 10.")),
-  lead_temperature: z.enum(["cold", "warm", "hot", "very_hot"]),
+  lead_temperature: z.preprocess(emptyToUndefined, leadTemperatureSchema.optional()).transform((value) => value ?? "warm"),
   estimated_value: optionalNumber(z.coerce.number().min(0, "Estimated value must be zero or greater.")),
   expected_closing_date: optionalDate,
-  notes: optionalText,
+  notes: optionalString,
 });
 
 export const interactionTypeOptions = [
@@ -98,23 +201,23 @@ export const interactionSchema = z.object({
   company_id: z.string().uuid("Company is required."),
   contact_person_id: optionalUuid,
   assigned_user_id: optionalUuid,
-  interaction_type: z.enum(interactionTypeOptions, { errorMap: () => ({ message: "Select a valid interaction type." }) }),
-  meeting_datetime: z.string().min(1, "Date and time is required."),
-  location: optionalText,
-  online_meeting_link: optionalUrl("Enter a valid URL including https://."),
+  interaction_type: requiredEnum(interactionTypeOptions, "Interaction type is required."),
+  meeting_datetime: optionalDateTime,
+  location: optionalString,
+  online_meeting_link: optionalUrl("Please enter a valid website URL."),
   discussion_details: z.string().trim().min(5, "Discussion details are required."),
-  client_requirement: optionalText,
-  pain_point: optionalText,
-  proposed_solution: optionalText,
-  budget_discussion: optionalText,
-  competitor_mentioned: optionalText,
-  decision_timeline: optionalText,
-  success_rating: optionalNumber(z.coerce.number().int().min(1).max(10)),
-  lead_temperature: z.enum(["cold", "warm", "hot", "very_hot"]).optional().or(z.literal("")).transform((value) => value || null),
-  next_action: optionalText,
+  client_requirement: optionalString,
+  pain_point: optionalString,
+  proposed_solution: optionalString,
+  budget_discussion: optionalString,
+  competitor_mentioned: optionalString,
+  decision_timeline: optionalString,
+  success_rating: optionalNumber(z.coerce.number({ invalid_type_error: "Please enter a valid number." }).int().min(1, "Success rating must be between 1 and 10.").max(10, "Success rating must be between 1 and 10.")),
+  lead_temperature: optionalEnum(["cold", "warm", "hot", "very_hot"]),
+  next_action: optionalString,
   next_followup_at: optionalDate,
   need_help: z.boolean().default(false),
-  internal_note: optionalText,
+  internal_note: optionalString,
   status: statusSchema.default("active"),
 });
 
@@ -138,15 +241,21 @@ export const followupStatusOptions = ["pending", "completed", "rescheduled", "ca
 export const followupSchema = z.object({
   company_id: z.string().uuid("Company is required."),
   title: z.string().trim().min(2, "Title is required."),
-  scheduled_at: z.string().min(1, "Scheduled date and time is required."),
+  scheduled_at: z.preprocess(
+    emptyToUndefined,
+    z.string({
+      required_error: "Scheduled date and time is required.",
+      invalid_type_error: "Scheduled date and time is required.",
+    }).min(1, "Scheduled date and time is required."),
+  ),
   contact_person_id: optionalUuid,
   interaction_id: optionalUuid,
   assigned_user_id: optionalUuid,
-  followup_type: z.enum(followupTypeOptions).default("Phone Call"),
-  description: optionalText,
-  reminder_before_minutes: optionalNumberWithDefault(z.coerce.number().int().min(0), 60),
-  priority: z.enum(followupPriorityOptions).default("medium"),
-  status: z.enum(followupStatusOptions).default("pending"),
+  followup_type: requiredEnum(followupTypeOptions, "Follow-up type is required."),
+  description: optionalString,
+  reminder_before_minutes: optionalNumberWithDefault(z.coerce.number({ invalid_type_error: "Please enter a valid number." }).int().min(0, "Please enter a valid number."), 60),
+  priority: z.preprocess(emptyToUndefined, z.enum(followupPriorityOptions, { invalid_type_error: "Please select a valid option." }).optional()).transform((value) => value ?? "medium"),
+  status: requiredEnum(followupStatusOptions, "Status is required."),
 });
 
 export const decisionRoleOptions = [
@@ -184,16 +293,16 @@ export const preferredContactMethodOptions = [
 export const contactPersonSchema = z.object({
   name: z.string().trim().min(2, "Contact name is required."),
   company_id: z.string().uuid("Company is required."),
-  designation: optionalText,
-  department: optionalText,
-  mobile: optionalText,
-  whatsapp: optionalText,
+  designation: optionalString,
+  department: optionalString,
+  mobile: optionalString,
+  whatsapp: optionalString,
   email: optionalEmail,
-  linkedin: optionalUrl("Enter a valid LinkedIn URL including https://"),
-  decision_role: z.enum(decisionRoleOptions).optional().or(z.literal("")).transform((value) => value || null),
-  relationship_level: z.enum(relationshipLevelOptions).optional().or(z.literal("")).transform((value) => value || null),
-  preferred_contact_method: z.enum(preferredContactMethodOptions).optional().or(z.literal("")).transform((value) => value || null),
-  remarks: optionalText,
+  linkedin: optionalUrl("Please enter a valid website URL."),
+  decision_role: optionalEnum(decisionRoleOptions),
+  relationship_level: optionalEnum(relationshipLevelOptions),
+  preferred_contact_method: optionalEnum(preferredContactMethodOptions),
+  remarks: optionalString,
   is_primary: z.boolean().default(false),
   status: statusSchema.default("active"),
 });
@@ -207,6 +316,8 @@ export type ContactPersonInput = z.infer<typeof contactPersonSchema>;
 export type ContactPersonFormValues = z.input<typeof contactPersonSchema>;
 export type InteractionInput = z.infer<typeof interactionSchema>;
 export type InteractionFormValues = z.input<typeof interactionSchema>;
+export type FollowupInput = z.infer<typeof followupSchema>;
+export type FollowupFormValues = z.input<typeof followupSchema>;
 
 export const documentTypeOptions = [
   "Company Profile",
@@ -237,16 +348,16 @@ export const documentStatusOptions = [
 export const documentSchema = z.object({
   company_id: z.string().uuid("Company is required."),
   title: z.string().trim().min(2, "Document title is required."),
-  document_type: z.enum(documentTypeOptions, { errorMap: () => ({ message: "Select a valid document type." }) }),
-  description: optionalText,
+  document_type: requiredEnum(documentTypeOptions, "Document type is required."),
+  description: optionalString,
   contact_person_id: optionalUuid,
   interaction_id: optionalUuid,
   followup_id: optionalUuid,
-  status: z.enum(documentStatusOptions).default("submitted"),
-  submitted_to: optionalText,
+  status: requiredEnum(documentStatusOptions, "Status is required."),
+  submitted_to: optionalString,
   submitted_at: optionalDate,
   expiry_date: optionalDate,
-  remarks: optionalText,
+  remarks: optionalString,
 });
 
 export type DocumentInput = z.infer<typeof documentSchema>;
@@ -273,30 +384,34 @@ export const helpRequestStatusOptions = ["open", "in_progress", "resolved", "rej
 export const helpRequestSchema = z.object({
   company_id: z.string().uuid("Company is required."),
   title: z.string().trim().min(2, "Title is required."),
-  help_type: z.enum(helpRequestTypeOptions, { errorMap: () => ({ message: "Select a valid help type." }) }),
+  help_type: requiredEnum(helpRequestTypeOptions, "Help type is required."),
   contact_person_id: optionalUuid,
   interaction_id: optionalUuid,
   followup_id: optionalUuid,
   document_id: optionalUuid,
   assigned_to: optionalUuid,
-  priority: z.enum(helpRequestPriorityOptions).default("medium"),
-  status: z.enum(helpRequestStatusOptions).default("open"),
-  description: optionalText,
-  resolution_note: optionalText,
+  priority: requiredEnum(helpRequestPriorityOptions, "Priority is required."),
+  status: requiredEnum(helpRequestStatusOptions, "Status is required."),
+  description: optionalString,
+  resolution_note: optionalString,
 });
 
 export const helpRequestUpdateSchema = z.object({
-  title: z.string().trim().min(2, "Title is required.").optional(),
-  help_type: z.enum(helpRequestTypeOptions).optional(),
+  company_id: z.preprocess(emptyToUndefined, z.string().uuid("Please select a valid option.").optional()),
+  title: z.preprocess(
+    emptyToUndefined,
+    z.string().trim().min(2, "Title is required.").optional(),
+  ),
+  help_type: z.preprocess(emptyToUndefined, z.enum(helpRequestTypeOptions, { invalid_type_error: "Please select a valid option." }).optional()),
   contact_person_id: optionalUuid,
   interaction_id: optionalUuid,
   followup_id: optionalUuid,
   document_id: optionalUuid,
   assigned_to: optionalUuid,
-  priority: z.enum(helpRequestPriorityOptions).optional(),
-  status: z.enum(helpRequestStatusOptions).optional(),
-  description: optionalText,
-  resolution_note: optionalText,
+  priority: z.preprocess(emptyToUndefined, z.enum(helpRequestPriorityOptions, { invalid_type_error: "Please select a valid option." }).optional()),
+  status: z.preprocess(emptyToUndefined, z.enum(helpRequestStatusOptions, { invalid_type_error: "Please select a valid option." }).optional()),
+  description: optionalString,
+  resolution_note: optionalString,
 });
 
 export const helpRequestCommentSchema = z.object({

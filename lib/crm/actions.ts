@@ -584,7 +584,7 @@ export async function createContactAction(values: unknown): Promise<CrmActionSta
   const user = await requireAuth();
   const parsed = contactPersonSchema.safeParse(values);
 
-  if (!parsed.success) return { ok: false, error: getFirstError(parsed.error) };
+  if (!parsed.success) return getValidationState(parsed.error);
 
   try {
     const { organization } = await requireCompanyInOrganization(parsed.data.company_id);
@@ -627,7 +627,7 @@ export async function createContactAction(values: unknown): Promise<CrmActionSta
 export async function updateContactAction(id: string, values: unknown): Promise<CrmActionState> {
   const parsed = contactPersonSchema.safeParse(values);
 
-  if (!parsed.success) return { ok: false, error: getFirstError(parsed.error) };
+  if (!parsed.success) return getValidationState(parsed.error);
 
   try {
     const { organization, contact } = await requireContactInOrganization(id);

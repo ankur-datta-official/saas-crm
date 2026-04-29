@@ -8,10 +8,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FormActionBar, FormContextHint, FormRequiredNote } from "@/components/shared/form-helpers";
+import { FormActionBar, FormContextHint, FormRequiredNote, FormSection } from "@/components/shared/form-helpers";
 import { createInteractionAction, updateInteractionAction } from "@/lib/crm/actions";
 import { interactionSchema, interactionTypeOptions, temperatureFromRating, type InteractionFormValues } from "@/lib/crm/schemas";
 import type { Company, ContactPerson, Interaction, TeamMemberOption } from "@/lib/crm/types";
@@ -91,7 +90,7 @@ export function InteractionForm({ interaction, companies, contacts, teamMembers,
 
   return (
     <form className="space-y-5" onSubmit={form.handleSubmit((values) => onSubmit(values, "save"))}>
-      <FormRequiredNote message="Company and discussion details are required. The meeting date is prefilled with the current time so you can log calls and conversations quickly." />
+      <FormRequiredNote message="Company, interaction type, and discussion details are required. The meeting date is prefilled with the current time so you can log calls and conversations quickly." />
       {defaultCompanyId && !interaction ? (
         <FormContextHint message="This meeting was started from a company page, so the company is preselected." />
       ) : null}
@@ -104,15 +103,15 @@ export function InteractionForm({ interaction, companies, contacts, teamMembers,
           <option value="">No contact selected</option>
           {availableContacts.map((contact) => <option key={contact.id} value={contact.id}>{contact.name}</option>)}
         </SelectField>
-        <SelectField label="Interaction Type" {...form.register("interaction_type")}>
+        <SelectField label="Interaction Type" required {...form.register("interaction_type")}>
           {interactionTypeOptions.map((type) => <option key={type} value={type}>{type}</option>)}
         </SelectField>
-        <Field label="Discussion Details" required error={form.formState.errors.discussion_details?.message}>
+        <Field label="Discussion Details" required error={form.formState.errors.discussion_details?.message} className="md:col-span-2 xl:col-span-4">
           <textarea {...form.register("discussion_details")} className="min-h-28 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm" />
         </Field>
       </FormSection>
 
-      <CollapsibleSection title="Meeting Context" description="When and where the interaction happened.">
+      <FormSection title="Meeting Context" description="When and where the interaction happened." optional>
         <Field label="Meeting Date & Time"><Input type="datetime-local" {...form.register("meeting_datetime")} /></Field>
         <Field label="Location"><Input {...form.register("location")} /></Field>
         <Field label="Online Meeting Link" error={form.formState.errors.online_meeting_link?.message}><Input {...form.register("online_meeting_link")} placeholder="https://meet.example.com" /></Field>
@@ -120,18 +119,18 @@ export function InteractionForm({ interaction, companies, contacts, teamMembers,
           <option value="">Unassigned</option>
           {teamMembers.map((member) => <option key={member.id} value={member.id}>{member.full_name ?? member.email}</option>)}
         </SelectField>
-      </CollapsibleSection>
+      </FormSection>
 
-      <CollapsibleSection title="Client Requirement" description="Capture client needs, pain points, and proposed direction.">
+      <FormSection title="Client Requirement" description="Capture client needs, pain points, and proposed direction." optional>
         <Field label="Client Requirement"><Input {...form.register("client_requirement")} /></Field>
         <Field label="Pain Point"><Input {...form.register("pain_point")} /></Field>
         <Field label="Proposed Solution"><Input {...form.register("proposed_solution")} /></Field>
         <Field label="Budget Discussion"><Input {...form.register("budget_discussion")} /></Field>
         <Field label="Competitor Mentioned"><Input {...form.register("competitor_mentioned")} /></Field>
         <Field label="Decision Timeline"><Input {...form.register("decision_timeline")} /></Field>
-      </CollapsibleSection>
+      </FormSection>
 
-      <CollapsibleSection title="Sales Evaluation" description="Qualification rating and lead temperature.">
+      <FormSection title="Sales Evaluation" description="Qualification rating and lead temperature." optional>
         <Field label="Success Rating" error={form.formState.errors.success_rating?.message}><Input type="number" min={1} max={10} {...form.register("success_rating")} onChange={handleRatingChange} /></Field>
         <SelectField label="Lead Temperature" {...form.register("lead_temperature")} onChange={(event) => { setTemperatureTouched(true); form.setValue("lead_temperature", event.target.value as InteractionFormValues["lead_temperature"]); }}>
           <option value="">Auto from rating</option>
@@ -140,17 +139,17 @@ export function InteractionForm({ interaction, companies, contacts, teamMembers,
           <option value="hot">Hot</option>
           <option value="very_hot">Very Hot</option>
         </SelectField>
-      </CollapsibleSection>
+      </FormSection>
 
-      <CollapsibleSection title="Next Action" description="Future action planning without creating full follow-up tasks yet.">
+      <FormSection title="Next Action" description="Future action planning without creating full follow-up tasks yet." optional>
         <Field label="Next Action"><Input {...form.register("next_action")} /></Field>
         <Field label="Next Follow-up Date & Time"><Input type="datetime-local" {...form.register("next_followup_at")} /></Field>
-      </CollapsibleSection>
+      </FormSection>
 
-      <CollapsibleSection title="Internal Notes" description="Internal team context and help flags.">
+      <FormSection title="Internal Notes" description="Internal team context and help flags." optional>
         <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" className="size-4" {...form.register("need_help")} />Need help</label>
         <div className="md:col-span-2 xl:col-span-4"><Label>Internal Note</Label><textarea {...form.register("internal_note")} className="mt-2 min-h-28 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm" /></div>
-      </CollapsibleSection>
+      </FormSection>
 
       {serverError ? <p className="rounded-md bg-rose-50 p-3 text-sm text-rose-700">{serverError}</p> : null}
       {successMessage ? <p className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">{successMessage}</p> : null}
@@ -163,14 +162,8 @@ export function InteractionForm({ interaction, companies, contacts, teamMembers,
   );
 }
 
-function FormSection({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
-  return <Card><CardHeader><CardTitle>{title}</CardTitle><CardDescription>{description}</CardDescription></CardHeader><CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">{children}</CardContent></Card>;
-}
-function CollapsibleSection({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
-  return <details className="rounded-xl border bg-card shadow-soft"><summary className="cursor-pointer list-none p-5"><div className="flex items-start justify-between gap-4"><div><h3 className="font-semibold">{title}</h3><p className="mt-1 text-sm text-muted-foreground">{description}</p></div><span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">Optional</span></div></summary><div className="grid gap-4 p-5 pt-0 md:grid-cols-2 xl:grid-cols-4">{children}</div></details>;
-}
-function Field({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: React.ReactNode }) {
-  return <div className="space-y-2"><Label>{label}{required ? <span className="text-destructive"> *</span> : null}</Label>{children}{error ? <p className="text-xs text-destructive">{error}</p> : null}</div>;
+function Field({ label, required, error, children, className }: { label: string; required?: boolean; error?: string; children: React.ReactNode; className?: string }) {
+  return <div className={`space-y-2 ${className ?? ""}`}><Label>{label}{required ? <span className="text-destructive"> *</span> : null}</Label>{children}{error ? <p className="text-xs text-destructive">{error}</p> : null}</div>;
 }
 function SelectField({ label, required, error, children, ...props }: React.SelectHTMLAttributes<HTMLSelectElement> & { label: string; required?: boolean; error?: string }) {
   return <div className="space-y-2"><Label>{label}{required ? <span className="text-destructive"> *</span> : null}</Label><select {...props} className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm shadow-sm">{children}</select>{error ? <p className="text-xs text-destructive">{error}</p> : null}</div>;

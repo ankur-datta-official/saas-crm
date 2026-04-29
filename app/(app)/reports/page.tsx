@@ -1,8 +1,7 @@
 import { Suspense } from "react";
-import { BarChart3 } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { GuidanceStrip } from "@/components/shared/guidance-strip";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsContent } from "@/components/ui/tabs";
 import { ReportFilterBar } from "@/components/crm/reports/report-filter-bar";
 import { ReportTabs } from "@/components/crm/reports/report-tabs";
 import { SalesOverviewReport } from "@/components/crm/reports/sales-overview-report";
@@ -14,6 +13,7 @@ import { DocumentReport } from "@/components/crm/reports/document-report";
 import { HelpRequestReport } from "@/components/crm/reports/help-request-report";
 import { TeamPerformanceReport } from "@/components/crm/reports/team-performance-report";
 import { FeatureLockCard } from "@/components/subscription/feature-lock-card";
+import { ReportLoadingFallback } from "@/components/crm/reports/report-visuals";
 import {
   getIndustries,
   getCompanyCategories,
@@ -69,13 +69,24 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
     getTeamMembers(),
   ]);
 
+  const tabDescriptions: Record<string, string> = {
+    "sales-overview": "A quick snapshot of lead volume, pipeline value, activity, and support needs.",
+    leads: "Understand lead quality, source, owner, and stage.",
+    pipeline: "Review deal movement, stage value, and bottlenecks.",
+    meetings: "Track discussion activity and sales temperature.",
+    "follow-ups": "Measure discipline around next actions and overdue work.",
+    documents: "Review submitted proposals, quotations, and files.",
+    "help-requests": "Monitor internal support requests and blockers.",
+    team: "Compare activity volume and pipeline ownership.",
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Reports & Analytics"
-        description="Review sales progress, pipeline movement, follow-up discipline, and team performance."
+        description="Track sales health, team activity, and pipeline momentum in one place."
       />
-      <GuidanceStrip>
+      <GuidanceStrip dismissible storageKey="crm-tip-reports" className="py-2.5">
         Start with Sales Overview for a quick read, then switch tabs to inspect pipeline, meetings, follow-ups, and support trends.
       </GuidanceStrip>
 
@@ -93,8 +104,8 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
         />
       ) : null}
 
-      <ReportTabs currentTab={currentTab} lockedTabs={lockedTabs}>
-        <Suspense fallback={<div className="h-[400px] flex items-center justify-center">Loading report...</div>}>
+      <ReportTabs currentTab={currentTab} lockedTabs={lockedTabs} description={tabDescriptions[currentTab] ?? tabDescriptions["sales-overview"]}>
+        <Suspense fallback={<ReportLoadingFallback />}>
           <TabsContent value="sales-overview">
             <SalesOverviewReportView filters={filters} />
           </TabsContent>

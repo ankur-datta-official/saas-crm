@@ -32,7 +32,7 @@ export default async function CompaniesPage({
           </Button>
         }
       />
-      <GuidanceStrip>
+      <GuidanceStrip dismissible storageKey="crm-tip-companies">
         Start by adding a company, then attach contacts, meetings, and follow-ups as the relationship grows.
       </GuidanceStrip>
       <CompanyTable companies={companies} {...options} />

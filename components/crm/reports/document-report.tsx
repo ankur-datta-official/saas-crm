@@ -15,11 +15,10 @@ import {
 } from "recharts";
 import { ReportChartCard } from "./report-chart-card";
 import { ReportDataTable } from "./report-data-table";
+import { ReportChartLegend, ReportChartTooltip, REPORT_CHART_COLORS, ReportMetricCard } from "./report-visuals";
 import type { DocumentReportData } from "@/lib/crm/report-queries";
 import { DocumentStatusBadge, DocumentTypeBadge } from "@/components/crm/document-badges";
 import Link from "next/link";
-
-const COLORS = ["#0ea5e9", "#f59e0b", "#ef4444", "#10b981", "#6366f1", "#ec4899", "#8b5cf6"];
 
 export function DocumentReport({ data }: { data: DocumentReportData }) {
   const columns = [
@@ -63,7 +62,7 @@ export function DocumentReport({ data }: { data: DocumentReportData }) {
   return (
     <div className="space-y-6">
       <div className="grid gap-6 md:grid-cols-2">
-        <ReportChartCard title="Documents by Type">
+        <ReportChartCard title="Documents by Type" description="Review which document types are being submitted most often." isEmpty={data.documentsByType.length === 0}>
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -77,45 +76,32 @@ export function DocumentReport({ data }: { data: DocumentReportData }) {
                 nameKey="type"
               >
                 {data.documentsByType.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Cell key={`cell-${index}`} fill={REPORT_CHART_COLORS[index % REPORT_CHART_COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip />
-              <Legend />
+              <Tooltip content={<ReportChartTooltip />} />
+              <Legend content={<ReportChartLegend />} />
             </PieChart>
           </ResponsiveContainer>
         </ReportChartCard>
 
-        <ReportChartCard title="Documents by Status">
+        <ReportChartCard title="Documents by Status" description="Check how documents are distributed across submission statuses." isEmpty={data.documentsByStatus.length === 0}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data.documentsByStatus}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="status" fontSize={12} />
-              <YAxis fontSize={12} />
-              <Tooltip />
-              <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} />
+              <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="status" fontSize={12} tick={{ fill: "#64748b" }} />
+              <YAxis fontSize={12} tick={{ fill: "#64748b" }} />
+              <Tooltip content={<ReportChartTooltip />} />
+              <Bar dataKey="count" fill="#0284c7" radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ReportChartCard>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div className="rounded-lg border bg-card p-4 text-center">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Documents</p>
-          <p className="mt-2 text-3xl font-bold">{data.totalDocuments}</p>
-        </div>
-        <div className="rounded-lg border bg-card p-4 text-center">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Most Active User</p>
-          <p className="mt-2 text-xl font-bold truncate">
-            {data.documentsByUser[0]?.user || "N/A"}
-          </p>
-        </div>
-        <div className="rounded-lg border bg-card p-4 text-center">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Latest Document</p>
-          <p className="mt-2 text-xl font-bold truncate">
-            {data.recentDocuments[0]?.title || "N/A"}
-          </p>
-        </div>
+        <ReportMetricCard title="Total Documents" value={String(data.totalDocuments)} detail="Documents in the selected range" tone="slate" />
+        <ReportMetricCard title="Most Active User" value={data.documentsByUser[0]?.user || "N/A"} detail="Top uploader by document volume" tone="sky" />
+        <ReportMetricCard title="Latest Document" value={data.recentDocuments[0]?.title || "N/A"} detail="Most recently uploaded file" tone="amber" />
       </div>
 
       <ReportDataTable 

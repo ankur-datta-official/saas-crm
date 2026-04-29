@@ -15,13 +15,12 @@ import {
 } from "recharts";
 import { ReportChartCard } from "./report-chart-card";
 import { ReportDataTable } from "./report-data-table";
+import { ReportChartLegend, ReportChartTooltip, REPORT_CHART_COLORS } from "./report-visuals";
 import type { LeadReportData } from "@/lib/crm/report-queries";
 import { LeadTemperatureBadge } from "@/components/crm/lead-temperature-badge";
 import { RatingBadge } from "@/components/crm/rating-badge";
 import { formatCurrency } from "@/lib/crm/utils";
 import Link from "next/link";
-
-const COLORS = ["#0ea5e9", "#f59e0b", "#ef4444", "#10b981", "#6366f1", "#ec4899", "#8b5cf6"];
 
 export function LeadReport({ data }: { data: LeadReportData }) {
   const columns = [
@@ -63,19 +62,19 @@ export function LeadReport({ data }: { data: LeadReportData }) {
   return (
     <div className="space-y-6">
       <div className="grid gap-6 md:grid-cols-2">
-        <ReportChartCard title="Leads by Industry">
+        <ReportChartCard title="Leads by Industry" description="Compare lead distribution across active industries." isEmpty={data.leadsByIndustry.length === 0}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data.leadsByIndustry} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+              <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" horizontal vertical={false} />
               <XAxis type="number" hide />
-              <YAxis dataKey="industry" type="category" width={120} fontSize={12} />
-              <Tooltip />
-              <Bar dataKey="count" fill="#0ea5e9" radius={[0, 4, 4, 0]} />
+              <YAxis dataKey="industry" type="category" width={120} fontSize={12} tick={{ fill: "#64748b" }} />
+              <Tooltip content={<ReportChartTooltip />} />
+              <Bar dataKey="count" fill="#0f766e" radius={[0, 8, 8, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ReportChartCard>
 
-        <ReportChartCard title="Leads by Category">
+        <ReportChartCard title="Leads by Category" description="See which lead categories currently carry the most volume." isEmpty={data.leadsByCategory.length === 0}>
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -89,37 +88,37 @@ export function LeadReport({ data }: { data: LeadReportData }) {
                 nameKey="category"
               >
                 {data.leadsByCategory.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Cell key={`cell-${index}`} fill={REPORT_CHART_COLORS[index % REPORT_CHART_COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip />
-              <Legend />
+              <Tooltip content={<ReportChartTooltip />} />
+              <Legend content={<ReportChartLegend />} />
             </PieChart>
           </ResponsiveContainer>
         </ReportChartCard>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <ReportChartCard title="Leads by Source" height={250}>
+        <ReportChartCard title="Leads by Source" description="Understand which sources generate the most leads." height={250} isEmpty={data.leadsBySource.length === 0}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data.leadsBySource}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="source" fontSize={12} />
-              <YAxis fontSize={12} />
-              <Tooltip />
-              <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} />
+              <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="source" fontSize={12} tick={{ fill: "#64748b" }} />
+              <YAxis fontSize={12} tick={{ fill: "#64748b" }} />
+              <Tooltip content={<ReportChartTooltip />} />
+              <Bar dataKey="count" fill="#0284c7" radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ReportChartCard>
 
-        <ReportChartCard title="Leads by Assigned User" height={250}>
+        <ReportChartCard title="Leads by Assigned User" description="Spot ownership load across your active team." height={250} isEmpty={data.leadsByAssignedUser.length === 0}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data.leadsByAssignedUser}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="user" fontSize={10} interval={0} tick={{ width: 60 }} />
-              <YAxis fontSize={12} />
-              <Tooltip />
-              <Bar dataKey="count" fill="#10b981" radius={[4, 4, 0, 0]} />
+              <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="user" fontSize={10} interval={0} tick={{ width: 60, fill: "#64748b" }} />
+              <YAxis fontSize={12} tick={{ fill: "#64748b" }} />
+              <Tooltip content={<ReportChartTooltip />} />
+              <Bar dataKey="count" fill="#0f766e" radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ReportChartCard>

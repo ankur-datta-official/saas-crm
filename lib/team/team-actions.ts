@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import {
   getCurrentProfile,
   getCurrentUser,
@@ -28,6 +29,20 @@ type RoleInput = {
   name: string;
   description?: string;
 };
+
+const inviteTeamMemberSchema = z.object({
+  email: z.string().trim().min(1, "Email is required.").email("Please enter a valid email address."),
+  roleId: z.string().trim().min(1, "Role is required."),
+  fullName: z.string().trim().optional(),
+  jobTitle: z.string().trim().optional(),
+  department: z.string().trim().optional(),
+  phone: z.string().trim().optional(),
+});
+
+const roleInputSchema = z.object({
+  name: z.string().trim().min(1, "Role name is required."),
+  description: z.string().trim().optional(),
+});
 
 async function logActivity(
   organizationId: string,
@@ -81,12 +96,13 @@ export async function inviteTeamMember(input: InviteTeamMemberInput) {
   const organization = await requireOrganization();
   const user = await requireAuth();
   const supabase = await createClient();
-  const email = normalizeEmail(input.email);
-  const userLimit = await checkUserLimit(1);
-
-  if (!email) {
-    throw new Error("Email is required.");
+  const parsedInputResult = inviteTeamMemberSchema.safeParse(input);
+  if (!parsedInputResult.success) {
+    throw new Error(parsedInputResult.error.errors[0]?.message ?? "Please check the invite form and try again.");
   }
+  const parsedInput = parsedInputResult.data;
+  const email = normalizeEmail(parsedInput.email);
+  const userLimit = await checkUserLimit(1);
 
   if (!userLimit.allowed) {
     await logActivity(organization.id, "subscription.limit_reached", "organization", organization.id, {
@@ -98,7 +114,7 @@ export async function inviteTeamMember(input: InviteTeamMemberInput) {
     throw new Error(userLimit.message ?? "Your current plan has no room for more team members.");
   }
 
-  await getRoleOrThrow(input.roleId, organization.id);
+  await getRoleOrThrow(parsedInput.roleId, organization.id);
 
   const { data: existingInvitation } = await supabase
     .from("team_invitations")
@@ -132,13 +148,13 @@ export async function inviteTeamMember(input: InviteTeamMemberInput) {
     .insert({
       organization_id: organization.id,
       email,
-      role_id: input.roleId,
+      role_id: parsedInput.roleId,
       invited_by: user.id,
       token,
-      full_name: input.fullName?.trim() || null,
-      job_title: input.jobTitle?.trim() || null,
-      department: input.department?.trim() || null,
-      phone: input.phone?.trim() || null,
+      full_name: parsedInput.fullName || null,
+      job_title: parsedInput.jobTitle || null,
+      department: parsedInput.department || null,
+      phone: parsedInput.phone || null,
     })
     .select("id, token")
     .single();
@@ -150,7 +166,7 @@ export async function inviteTeamMember(input: InviteTeamMemberInput) {
 
   await logActivity(organization.id, "team.member.invited", "team_invitation", data.id, {
     email,
-    role_id: input.roleId,
+    role_id: parsedInput.roleId,
   });
 
   await createNotification({
@@ -441,19 +457,20 @@ export async function createRole(input: RoleInput) {
   await ensureRoleManagementAccess();
   const organization = await requireOrganization();
   const supabase = await createClient();
-  const slug = input.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-
-  if (!slug) {
-    throw new Error("Role name is required.");
+  const parsedInputResult = roleInputSchema.safeParse(input);
+  if (!parsedInputResult.success) {
+    throw new Error(parsedInputResult.error.errors[0]?.message ?? "Please check the role form and try again.");
   }
+  const parsedInput = parsedInputResult.data;
+  const slug = parsedInput.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
   const { data, error } = await supabase
     .from("roles")
     .insert({
       organization_id: organization.id,
-      name: input.name.trim(),
+      name: parsedInput.name,
       slug: `${slug}-${Date.now()}`,
-      description: input.description?.trim() || null,
+      description: parsedInput.description || null,
       is_system: false,
     })
     .select("id, name")
@@ -476,6 +493,11 @@ export async function updateRole(roleId: string, input: RoleInput) {
   const organization = await requireOrganization();
   const supabase = await createClient();
   const role = await getRoleOrThrow(roleId, organization.id);
+  const parsedInputResult = roleInputSchema.safeParse(input);
+  if (!parsedInputResult.success) {
+    throw new Error(parsedInputResult.error.errors[0]?.message ?? "Please check the role form and try again.");
+  }
+  const parsedInput = parsedInputResult.data;
 
   if (role.is_system) {
     throw new Error("System role names cannot be edited.");
@@ -484,8 +506,8 @@ export async function updateRole(roleId: string, input: RoleInput) {
   const { error } = await supabase
     .from("roles")
     .update({
-      name: input.name.trim(),
-      description: input.description?.trim() || null,
+      name: parsedInput.name,
+      description: parsedInput.description || null,
     })
     .eq("id", roleId)
     .eq("organization_id", organization.id);
@@ -495,7 +517,7 @@ export async function updateRole(roleId: string, input: RoleInput) {
   }
 
   await logActivity(organization.id, "team.role.updated", "role", roleId, {
-    name: input.name.trim(),
+    name: parsedInput.name,
   });
 
   revalidatePath("/team");

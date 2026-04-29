@@ -28,7 +28,7 @@ export default async function ContactsPage({ searchParams }: { searchParams: Pro
           </Button>
         }
       />
-      <GuidanceStrip>
+      <GuidanceStrip dismissible storageKey="crm-tip-contacts">
         Add contacts under your companies so every meeting, follow-up, and document stays tied to the right people.
       </GuidanceStrip>
       <ContactTable contacts={contacts} companies={companies} />

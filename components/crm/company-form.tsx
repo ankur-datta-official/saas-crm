@@ -8,10 +8,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FormActionBar, FormContextHint, FormRequiredNote } from "@/components/shared/form-helpers";
+import { FormActionBar, FormContextHint, FormRequiredNote, FormSection } from "@/components/shared/form-helpers";
 import { companySchema, type CompanyFormValues } from "@/lib/crm/schemas";
 import type { Company, CompanyCategory, Industry, PipelineStage, TeamMemberOption } from "@/lib/crm/types";
 import { createCompanyAction, updateCompanyAction } from "@/lib/crm/actions";
@@ -102,7 +101,7 @@ export function CompanyForm({ company, industries, categories, stages, teamMembe
 
   return (
     <form className="space-y-5" onSubmit={form.handleSubmit((values) => onSubmit(values, "save"))}>
-      <FormRequiredNote message="Start with the company name. You can add contacts, meetings, follow-ups, and more detailed qualification fields later." />
+      <FormRequiredNote message="Company name, pipeline stage, and status are required. You can add contacts, meetings, follow-ups, and more detailed qualification fields later." />
       <FormSection title="Basic Information" description="Core lead classification, ownership, and pipeline placement.">
         <Field label="Company name" required error={form.formState.errors.name?.message}>
           <Input {...form.register("name")} placeholder="Acme Enterprise" />
@@ -118,7 +117,7 @@ export function CompanyForm({ company, industries, categories, stages, teamMembe
           </option>
           {industries.map((industry) => <option key={industry.id} value={industry.id}>{industry.name}</option>)}
         </SelectField>
-        <SelectField label="Company category" error={serverFieldErrors.category_id} {...form.register("category_id")}>
+        <SelectField label="Company category" error={form.formState.errors.category_id?.message ?? serverFieldErrors.category_id} {...form.register("category_id")}>
           <option value="">Select category</option>
           {categories.map((category) => <option key={category.id} value={category.id}>{category.code} - {category.name}</option>)}
         </SelectField>
@@ -131,21 +130,21 @@ export function CompanyForm({ company, industries, categories, stages, teamMembe
           <option value="high">High</option>
           <option value="urgent">Urgent</option>
         </SelectField>
-        <SelectField label="Assigned user" error={serverFieldErrors.assigned_user_id} {...form.register("assigned_user_id")}>
+        <SelectField label="Assigned user" error={form.formState.errors.assigned_user_id?.message ?? serverFieldErrors.assigned_user_id} {...form.register("assigned_user_id")}>
           <option value="">Unassigned</option>
           {teamMembers.map((member) => <option key={member.id} value={member.id}>{member.full_name ?? member.email}</option>)}
         </SelectField>
-        <SelectField label="Pipeline stage" error={serverFieldErrors.pipeline_stage_id} {...form.register("pipeline_stage_id")}>
-          <option value="">No stage</option>
+        <SelectField label="Pipeline stage" required error={form.formState.errors.pipeline_stage_id?.message ?? serverFieldErrors.pipeline_stage_id} {...form.register("pipeline_stage_id")}>
+          <option value="">Select stage</option>
           {stages.map((stage) => <option key={stage.id} value={stage.id}>{stage.name}</option>)}
         </SelectField>
-        <SelectField label="Status" {...form.register("status")}>
+        <SelectField label="Status" required {...form.register("status")}>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
         </SelectField>
       </FormSection>
 
-      <CollapsibleSection title="Contact Information" description="Public contact channels and location details.">
+      <FormSection title="Contact Information" description="Public contact channels and location details." optional>
         <div className="md:col-span-2 xl:col-span-4">
           <FormContextHint message="You can keep this lead lightweight for now. Add phone, email, and address details only when they are available." />
         </div>
@@ -156,9 +155,9 @@ export function CompanyForm({ company, industries, categories, stages, teamMembe
         <Field label="Address"><Input {...form.register("address")} /></Field>
         <Field label="City"><Input {...form.register("city")} /></Field>
         <Field label="Country"><Input {...form.register("country")} /></Field>
-      </CollapsibleSection>
+      </FormSection>
 
-      <CollapsibleSection title="Sales Information" description="Qualification, value, temperature, and expected close timing.">
+      <FormSection title="Sales Information" description="Qualification, value, temperature, and expected close timing." optional>
         <Field label="Success rating" error={form.formState.errors.success_rating?.message ?? serverFieldErrors.success_rating}>
           <Input type="number" min={1} max={10} {...form.register("success_rating")} />
         </Field>
@@ -174,9 +173,9 @@ export function CompanyForm({ company, industries, categories, stages, teamMembe
         <Field label="Expected closing date">
           <Input type="date" {...form.register("expected_closing_date")} />
         </Field>
-      </CollapsibleSection>
+      </FormSection>
 
-      <CollapsibleSection title="Additional Notes" description="Internal context for qualification and next action planning." columns="grid-cols-1">
+      <FormSection title="Additional Notes" description="Internal context for qualification and next action planning." optional contentClassName="grid-cols-1">
         <div className="space-y-2">
           <Label htmlFor="notes">Notes</Label>
           <textarea
@@ -186,7 +185,7 @@ export function CompanyForm({ company, industries, categories, stages, teamMembe
             placeholder="Capture relationship context, requirements, risks, and decision notes."
           />
         </div>
-      </CollapsibleSection>
+      </FormSection>
 
       {serverError ? <p className="rounded-md bg-rose-50 p-3 text-sm text-rose-700">{serverError}</p> : null}
       {successMessage ? <p className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">{successMessage}</p> : null}
@@ -213,57 +212,6 @@ export function CompanyForm({ company, industries, categories, stages, teamMembe
   );
 }
 
-function FormSection({
-  title,
-  description,
-  children,
-  columns = "md:grid-cols-2 xl:grid-cols-4",
-}: {
-  title: string;
-  description: string;
-  children: React.ReactNode;
-  columns?: string;
-}) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent className={`grid gap-4 ${columns}`}>{children}</CardContent>
-    </Card>
-  );
-}
-
-function CollapsibleSection({
-  title,
-  description,
-  children,
-  columns = "md:grid-cols-2 xl:grid-cols-4",
-}: {
-  title: string;
-  description: string;
-  children: React.ReactNode;
-  columns?: string;
-}) {
-  return (
-    <details className="rounded-xl border bg-card text-card-foreground shadow-soft">
-      <summary className="cursor-pointer list-none p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h3 className="text-base font-semibold">{title}</h3>
-            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-          </div>
-          <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
-            Optional
-          </span>
-        </div>
-      </summary>
-      <div className={`grid gap-4 p-5 pt-0 ${columns}`}>{children}</div>
-    </details>
-  );
-}
-
 function Field({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: React.ReactNode }) {
   return (
     <div className="space-y-2">
@@ -280,11 +228,11 @@ function SelectField({
   helper,
   children,
   ...props
-}: React.SelectHTMLAttributes<HTMLSelectElement> & { label: string; error?: string; helper?: React.ReactNode }) {
+}: React.SelectHTMLAttributes<HTMLSelectElement> & { label: string; required?: boolean; error?: string; helper?: React.ReactNode }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <Label>{label}</Label>
+        <Label>{label}{props.required ? <span className="text-destructive"> *</span> : null}</Label>
         {helper}
       </div>
       <select {...props} className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm shadow-sm">

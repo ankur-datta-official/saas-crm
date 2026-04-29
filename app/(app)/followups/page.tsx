@@ -31,7 +31,7 @@ export default async function FollowupsPage({
           </Button>
         }
       />
-      <GuidanceStrip>
+      <GuidanceStrip dismissible storageKey="crm-tip-followups">
         Use filters to focus on high-priority or overdue work so no client action is missed.
       </GuidanceStrip>
 

@@ -9,19 +9,17 @@ import {
   Tooltip, 
   ResponsiveContainer, 
   Cell,
-  Legend,
   FunnelChart,
   Funnel,
   LabelList
 } from "recharts";
 import { ReportChartCard } from "./report-chart-card";
 import { ReportDataTable } from "./report-data-table";
+import { ReportChartTooltip, REPORT_CHART_COLORS, ReportMetricCard } from "./report-visuals";
 import type { PipelineReportData } from "@/lib/crm/report-queries";
 import { formatCurrency } from "@/lib/crm/utils";
 import { RatingBadge } from "@/components/crm/rating-badge";
 import Link from "next/link";
-
-const COLORS = ["#0ea5e9", "#f59e0b", "#ef4444", "#10b981", "#6366f1", "#ec4899", "#8b5cf6"];
 
 export function PipelineReport({ data }: { data: PipelineReportData }) {
   const columns = [
@@ -55,37 +53,38 @@ export function PipelineReport({ data }: { data: PipelineReportData }) {
   return (
     <div className="space-y-6">
       <div className="grid gap-6 md:grid-cols-2">
-        <ReportChartCard title="Pipeline Funnel (Count by Stage)">
+        <ReportChartCard title="Pipeline Funnel (Count by Stage)" description="See how deal volume narrows as opportunities move forward." isEmpty={data.companiesByStage.length === 0}>
           <ResponsiveContainer width="100%" height="100%">
             <FunnelChart>
-              <Tooltip />
+              <Tooltip content={<ReportChartTooltip />} />
               <Funnel
                 data={data.companiesByStage}
                 dataKey="count"
                 nameKey="stage"
               >
                 {data.companiesByStage.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
+                  <Cell key={`cell-${index}`} fill={entry.color || REPORT_CHART_COLORS[index % REPORT_CHART_COLORS.length]} />
                 ))}
-                <LabelList position="right" fill="#888" dataKey="stage" />
+                <LabelList position="right" fill="#64748b" dataKey="stage" />
               </Funnel>
             </FunnelChart>
           </ResponsiveContainer>
         </ReportChartCard>
 
-        <ReportChartCard title="Pipeline Value by Stage">
+        <ReportChartCard title="Pipeline Value by Stage" description="Review where estimated deal value is concentrated across the funnel." isEmpty={data.pipelineValueByStage.length === 0}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data.pipelineValueByStage}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="stage" fontSize={12} />
+              <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="stage" fontSize={12} tick={{ fill: "#64748b" }} />
               <YAxis 
                 fontSize={12} 
+                tick={{ fill: "#64748b" }}
                 tickFormatter={(val) => `$${val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}`} 
               />
-              <Tooltip formatter={(value: number) => formatCurrency(value)} />
-              <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+              <Tooltip content={<ReportChartTooltip />} formatter={(value: number) => formatCurrency(value)} />
+              <Bar dataKey="value" radius={[8, 8, 0, 0]}>
                 {data.pipelineValueByStage.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
+                  <Cell key={`cell-${index}`} fill={entry.color || REPORT_CHART_COLORS[index % REPORT_CHART_COLORS.length]} />
                 ))}
               </Bar>
             </BarChart>
@@ -94,28 +93,22 @@ export function PipelineReport({ data }: { data: PipelineReportData }) {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Won Deals</p>
-          <p className="mt-2 text-3xl font-bold text-teal-600">{data.wonLostCount.won}</p>
-        </div>
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Lost Deals</p>
-          <p className="mt-2 text-3xl font-bold text-rose-600">{data.wonLostCount.lost}</p>
-        </div>
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Active Pipeline</p>
-          <p className="mt-2 text-3xl font-bold text-blue-600">
-            {data.companiesByStage.reduce((sum, item) => sum + item.count, 0)}
-          </p>
-        </div>
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Average Success Rating</p>
-          <p className="mt-2 text-3xl font-bold text-amber-600">
-            {data.avgRatingByStage.length > 0 
-              ? (data.avgRatingByStage.reduce((sum, item) => sum + item.avgRating, 0) / data.avgRatingByStage.length).toFixed(1)
-              : "0.0"}
-          </p>
-        </div>
+        <ReportMetricCard title="Won Deals" value={String(data.wonLostCount.won)} detail="Deals moved into a won stage" tone="teal" />
+        <ReportMetricCard title="Lost Deals" value={String(data.wonLostCount.lost)} detail="Deals marked as lost" tone="rose" />
+        <ReportMetricCard
+          title="Total Active Pipeline"
+          value={String(data.companiesByStage.reduce((sum, item) => sum + item.count, 0))}
+          detail="Open deals currently in the funnel"
+          tone="sky"
+        />
+        <ReportMetricCard
+          title="Average Success Rating"
+          value={data.avgRatingByStage.length > 0
+            ? (data.avgRatingByStage.reduce((sum, item) => sum + item.avgRating, 0) / data.avgRatingByStage.length).toFixed(1)
+            : "0.0"}
+          detail="Average rating across active stages"
+          tone="amber"
+        />
       </div>
 
       <ReportDataTable 

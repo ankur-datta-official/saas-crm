@@ -22,7 +22,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
         description="Log client conversations and turn discussions into next actions."
         actions={<Button asChild><Link href="/meetings/new"><Plus />Log Meeting</Link></Button>}
       />
-      <GuidanceStrip>
+      <GuidanceStrip dismissible storageKey="crm-tip-meetings">
         Capture the discussion, next action, and follow-up date so your team always knows what happened and what comes next.
       </GuidanceStrip>
       <InteractionTable interactions={interactions} companies={companies} contacts={contacts} />

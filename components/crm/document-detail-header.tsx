@@ -20,7 +20,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { ConfirmModal } from "@/components/shared/confirm-modal";
 import { DocumentTypeBadge, DocumentStatusBadge, FileSizeBadge } from "./document-badges";
-import { archiveDocument, deleteDocument, logDocumentDownload, getSignedDocumentUrl } from "@/lib/crm/document-actions";
+import { archiveDocument, deleteDocument } from "@/lib/crm/document-actions";
+import { useDocumentDownload } from "./document-download";
 import type { Document } from "@/lib/crm/types";
 import { 
   DropdownMenu, 
@@ -35,17 +36,8 @@ export function DocumentDetailHeader({ document }: { document: Document }) {
   const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
-
-  const handleDownload = async () => {
-    try {
-      const signedUrl = await getSignedDocumentUrl(document.file_path);
-      await logDocumentDownload(document.id);
-      window.open(signedUrl, "_blank");
-    } catch (error) {
-      console.error("Download failed:", error);
-      alert("Failed to download document. Please try again.");
-    }
-  };
+  const { downloadDocument, downloadingDocumentId, downloadError, clearDownloadError } = useDocumentDownload();
+  const isDownloading = downloadingDocumentId === document.id;
 
   return (
     <div className="space-y-6">
@@ -76,9 +68,13 @@ export function DocumentDetailHeader({ document }: { document: Document }) {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleDownload}>
+          <Button
+            variant="outline"
+            onClick={() => void downloadDocument(document.id)}
+            disabled={isDownloading}
+          >
             <FileDown className="w-4 h-4 mr-2" />
-            Download
+            {isDownloading ? "Downloading..." : "Download"}
           </Button>
           <Button asChild variant="outline">
             <Link href={`/documents/${document.id}/edit`}>
@@ -110,6 +106,15 @@ export function DocumentDetailHeader({ document }: { document: Document }) {
           </DropdownMenu>
         </div>
       </div>
+
+      {downloadError ? (
+        <p className="text-sm text-destructive">
+          {downloadError}
+          <button type="button" className="ml-2 underline underline-offset-2" onClick={clearDownloadError}>
+            Dismiss
+          </button>
+        </p>
+      ) : null}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <HeaderCard 

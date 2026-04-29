@@ -7,10 +7,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Save, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FormActionBar, FormContextHint, FormRequiredNote } from "@/components/shared/form-helpers";
+import { FormActionBar, FormContextHint, FormRequiredNote, FormSection } from "@/components/shared/form-helpers";
 import { documentSchema, type DocumentFormValues, documentTypeOptions, documentStatusOptions } from "@/lib/crm/schemas";
 import type { Document, Company, ContactPerson, Interaction, Followup } from "@/lib/crm/types";
 import { createDocument, updateDocument } from "@/lib/crm/document-actions";
@@ -45,6 +44,7 @@ export function DocumentForm({
   const [serverFieldErrors, setServerFieldErrors] = useState<Record<string, string>>({});
   const [isPending, startTransition] = useTransition();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
 
   const form = useForm<DocumentFormValues>({
     resolver: zodResolver(documentSchema),
@@ -81,15 +81,16 @@ export function DocumentForm({
     setServerError(null);
     setSuccessMessage(null);
     setServerFieldErrors({});
+    setFileError(null);
 
     if (!document && !selectedFile) {
-      setServerError("Please select a file to upload.");
+      setFileError("Please select a file to upload.");
       return;
     }
 
     const formData = new FormData();
     Object.entries(values).forEach(([key, value]) => {
-      if (value !== null && value !== undefined) {
+      if (value !== null && value !== undefined && value !== "") {
         formData.append(key, String(value));
       }
     });
@@ -125,6 +126,7 @@ export function DocumentForm({
           remarks: "",
         });
         setSelectedFile(null);
+        setFileError(null);
         setSuccessMessage("Document uploaded. You can add another one now.");
         return;
       }
@@ -141,142 +143,137 @@ export function DocumentForm({
         <FormContextHint message="This upload was opened from existing CRM context, so related records are preselected where possible." />
       ) : null}
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-5">
-          <FormSection title="Basic Information" description="Document identity and core details.">
-            <SelectField
-              label="Company"
-              required
-              error={form.formState.errors.company_id?.message ?? serverFieldErrors.company_id}
-              {...form.register("company_id")}
-            >
-              <option value="">Select Company</option>
-              {companies.map((company) => (
-                <option key={company.id} value={company.id}>{company.name}</option>
-              ))}
-            </SelectField>
+      <FormSection title="Basic Information" description="Document identity and core details." contentClassName="md:grid-cols-2 xl:grid-cols-4">
+        <SelectField
+          label="Company"
+          required
+          error={form.formState.errors.company_id?.message ?? serverFieldErrors.company_id}
+          {...form.register("company_id")}
+        >
+          <option value="">Select Company</option>
+          {companies.map((company) => (
+            <option key={company.id} value={company.id}>{company.name}</option>
+          ))}
+        </SelectField>
 
-            <Field label="Document Title" required error={form.formState.errors.title?.message ?? serverFieldErrors.title}>
-              <Input {...form.register("title")} placeholder="e.g. Q-2024-001 Revised Quotation" />
-            </Field>
+        <Field label="Document Title" required error={form.formState.errors.title?.message ?? serverFieldErrors.title}>
+          <Input {...form.register("title")} placeholder="e.g. Q-2024-001 Revised Quotation" />
+        </Field>
 
-            <SelectField
-              label="Document Type"
-              required
-              error={form.formState.errors.document_type?.message ?? serverFieldErrors.document_type}
-              {...form.register("document_type")}
-            >
-              {documentTypeOptions.map((type) => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </SelectField>
+        <SelectField
+          label="Document Type"
+          required
+          error={form.formState.errors.document_type?.message ?? serverFieldErrors.document_type}
+          {...form.register("document_type")}
+        >
+          {documentTypeOptions.map((type) => (
+            <option key={type} value={type}>{type}</option>
+          ))}
+        </SelectField>
 
-            <div className="md:col-span-2 xl:col-span-4 space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <textarea
-                id="description"
-                {...form.register("description")}
-                className="min-h-20 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm"
-                placeholder="Briefly describe what this document is about..."
-              />
-            </div>
-          </FormSection>
+        <SelectField
+          label="Status"
+          required
+          error={form.formState.errors.status?.message ?? serverFieldErrors.status}
+          {...form.register("status")}
+        >
+          {documentStatusOptions.map((status) => (
+            <option key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1).replace("_", " ")}</option>
+          ))}
+        </SelectField>
 
-          <CollapsibleSection title="Related CRM Context" description="Link this document to contacts, meetings, or follow-ups.">
-            <SelectField
-              label="Contact Person"
-              error={form.formState.errors.contact_person_id?.message ?? serverFieldErrors.contact_person_id}
-              disabled={!selectedCompanyId}
-              {...form.register("contact_person_id")}
-            >
-              <option value="">No Contact Person</option>
-              {filteredContacts.map((contact) => (
-                <option key={contact.id} value={contact.id}>{contact.name}</option>
-              ))}
-            </SelectField>
-
-            <SelectField
-              label="Related Meeting"
-              error={form.formState.errors.interaction_id?.message ?? serverFieldErrors.interaction_id}
-              disabled={!selectedCompanyId}
-              {...form.register("interaction_id")}
-            >
-              <option value="">No Meeting</option>
-              {filteredInteractions.map((interaction) => (
-                <option key={interaction.id} value={interaction.id}>
-                  {new Date(interaction.meeting_datetime).toLocaleDateString()} - {interaction.interaction_type}
-                </option>
-              ))}
-            </SelectField>
-
-            <SelectField
-              label="Related Follow-up"
-              error={form.formState.errors.followup_id?.message ?? serverFieldErrors.followup_id}
-              disabled={!selectedCompanyId}
-              {...form.register("followup_id")}
-            >
-              <option value="">No Follow-up</option>
-              {filteredFollowups.map((followup) => (
-                <option key={followup.id} value={followup.id}>{followup.title}</option>
-              ))}
-            </SelectField>
-          </CollapsibleSection>
-
-          <CollapsibleSection title="Submission & Lifecycle" description="Tracking where and when the document was submitted.">
-            <Field label="Submitted To" error={form.formState.errors.submitted_to?.message ?? serverFieldErrors.submitted_to}>
-              <Input {...form.register("submitted_to")} placeholder="Person or Department" />
-            </Field>
-
-            <Field label="Submitted At" error={form.formState.errors.submitted_at?.message ?? serverFieldErrors.submitted_at}>
-              <Input type="date" {...form.register("submitted_at")} />
-            </Field>
-
-            <Field label="Expiry Date" error={form.formState.errors.expiry_date?.message ?? serverFieldErrors.expiry_date}>
-              <Input type="date" {...form.register("expiry_date")} />
-            </Field>
-
-            <SelectField
-              label="Status"
-              error={form.formState.errors.status?.message ?? serverFieldErrors.status}
-              {...form.register("status")}
-            >
-              {documentStatusOptions.map((status) => (
-                <option key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1).replace("_", " ")}</option>
-              ))}
-            </SelectField>
-          </CollapsibleSection>
-
-          <CollapsibleSection title="Additional Notes" description="Internal remarks and notes about this document." columns="grid-cols-1">
-            <div className="space-y-2">
-              <Label htmlFor="remarks">Remarks</Label>
-              <textarea
-                id="remarks"
-                {...form.register("remarks")}
-                className="min-h-24 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm"
-                placeholder="Internal notes, revision history, or special instructions..."
-              />
-            </div>
-          </CollapsibleSection>
+        <div className="md:col-span-2 xl:col-span-4 space-y-2">
+          <Label htmlFor="description">Description</Label>
+          <textarea
+            id="description"
+            {...form.register("description")}
+            className="min-h-20 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm"
+            placeholder="Briefly describe what this document is about..."
+          />
         </div>
+      </FormSection>
 
-        <div className="space-y-5">
-          <Card>
-            <CardHeader>
-              <CardTitle>File Upload</CardTitle>
-              <CardDescription>
-                {document ? "Replace the current file or keep it as is." : "Upload the document file."}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FileUploadField
-                required={!document}
-                onFileSelect={setSelectedFile}
-                currentFileName={document?.file_name}
-              />
-            </CardContent>
-          </Card>
+      <FormSection
+        title="File Upload"
+        description={document ? "Replace the current file or keep it as is." : "Upload the document file."}
+        contentClassName="grid-cols-1"
+      >
+        <FileUploadField
+          required={!document}
+          error={fileError ?? undefined}
+          onFileSelect={(file) => {
+            setSelectedFile(file);
+            setFileError(null);
+          }}
+          currentFileName={document?.file_name}
+        />
+      </FormSection>
+
+      <FormSection title="Related CRM Context" description="Link this document to contacts, meetings, or follow-ups." optional contentClassName="md:grid-cols-2 xl:grid-cols-3">
+        <SelectField
+          label="Contact Person"
+          error={form.formState.errors.contact_person_id?.message ?? serverFieldErrors.contact_person_id}
+          disabled={!selectedCompanyId}
+          {...form.register("contact_person_id")}
+        >
+          <option value="">No Contact Person</option>
+          {filteredContacts.map((contact) => (
+            <option key={contact.id} value={contact.id}>{contact.name}</option>
+          ))}
+        </SelectField>
+
+        <SelectField
+          label="Related Meeting"
+          error={form.formState.errors.interaction_id?.message ?? serverFieldErrors.interaction_id}
+          disabled={!selectedCompanyId}
+          {...form.register("interaction_id")}
+        >
+          <option value="">No Meeting</option>
+          {filteredInteractions.map((interaction) => (
+            <option key={interaction.id} value={interaction.id}>
+              {new Date(interaction.meeting_datetime).toLocaleDateString()} - {interaction.interaction_type}
+            </option>
+          ))}
+        </SelectField>
+
+        <SelectField
+          label="Related Follow-up"
+          error={form.formState.errors.followup_id?.message ?? serverFieldErrors.followup_id}
+          disabled={!selectedCompanyId}
+          {...form.register("followup_id")}
+        >
+          <option value="">No Follow-up</option>
+          {filteredFollowups.map((followup) => (
+            <option key={followup.id} value={followup.id}>{followup.title}</option>
+          ))}
+        </SelectField>
+      </FormSection>
+
+      <FormSection title="Submission Details" description="Tracking where and when the document was submitted." optional contentClassName="md:grid-cols-2 xl:grid-cols-4">
+        <Field label="Submitted To" error={form.formState.errors.submitted_to?.message ?? serverFieldErrors.submitted_to}>
+          <Input {...form.register("submitted_to")} placeholder="Person or Department" />
+        </Field>
+
+        <Field label="Submitted At" error={form.formState.errors.submitted_at?.message ?? serverFieldErrors.submitted_at}>
+          <Input type="date" {...form.register("submitted_at")} />
+        </Field>
+
+        <Field label="Expiry Date" error={form.formState.errors.expiry_date?.message ?? serverFieldErrors.expiry_date}>
+          <Input type="date" {...form.register("expiry_date")} />
+        </Field>
+      </FormSection>
+
+      <FormSection title="Additional Notes" description="Internal remarks and notes about this document." optional contentClassName="grid-cols-1">
+        <div className="space-y-2">
+          <Label htmlFor="remarks">Remarks</Label>
+          <textarea
+            id="remarks"
+            {...form.register("remarks")}
+            className="min-h-24 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm"
+            placeholder="Internal notes, revision history, or special instructions..."
+          />
         </div>
-      </div>
+      </FormSection>
 
       {serverError ? <p className="rounded-md bg-rose-50 p-3 text-sm text-rose-700">{serverError}</p> : null}
       {successMessage ? <p className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">{successMessage}</p> : null}
@@ -302,57 +299,6 @@ export function DocumentForm({
         )}
       </FormActionBar>
     </form>
-  );
-}
-
-function FormSection({
-  title,
-  description,
-  children,
-  columns = "md:grid-cols-2",
-}: {
-  title: string;
-  description: string;
-  children: React.ReactNode;
-  columns?: string;
-}) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent className={`grid gap-4 ${columns}`}>{children}</CardContent>
-    </Card>
-  );
-}
-
-function CollapsibleSection({
-  title,
-  description,
-  children,
-  columns = "md:grid-cols-2",
-}: {
-  title: string;
-  description: string;
-  children: React.ReactNode;
-  columns?: string;
-}) {
-  return (
-    <details className="rounded-xl border bg-card text-card-foreground shadow-sm">
-      <summary className="cursor-pointer list-none p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h3 className="text-base font-semibold">{title}</h3>
-            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-          </div>
-          <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
-            Optional
-          </span>
-        </div>
-      </summary>
-      <div className={`grid gap-4 p-5 pt-0 ${columns}`}>{children}</div>
-    </details>
   );
 }
 

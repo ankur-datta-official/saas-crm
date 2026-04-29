@@ -2,6 +2,7 @@
 
 import type React from "react";
 import { Info, Sparkles } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 export function FormRequiredNote({
@@ -47,11 +48,46 @@ export function FormActionBar({
   return (
     <div
       className={cn(
-        "sticky bottom-4 z-10 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-white/90",
+        "rounded-2xl border border-slate-200 bg-white p-3 shadow-soft",
         className,
       )}
     >
-      <div className="flex flex-wrap items-center justify-end gap-2">{children}</div>
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">{children}</div>
     </div>
+  );
+}
+
+export function FormSection({
+  title,
+  description,
+  children,
+  className,
+  contentClassName,
+  optional = false,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+  className?: string;
+  contentClassName?: string;
+  optional?: boolean;
+}) {
+  return (
+    <Card className={className}>
+      <CardHeader className="gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1">
+          <CardTitle>{title}</CardTitle>
+          <CardDescription>{description}</CardDescription>
+        </div>
+        {optional ? (
+          <span className="inline-flex w-fit rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
+            Optional
+          </span>
+        ) : null}
+      </CardHeader>
+      <CardContent className={cn("grid gap-4 md:grid-cols-2 xl:grid-cols-4", contentClassName)}>
+        {children}
+      </CardContent>
+    </Card>
   );
 }

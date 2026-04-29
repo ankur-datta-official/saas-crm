@@ -15,39 +15,40 @@ import {
   Line,
   Legend
 } from "recharts";
-import { Users, Flame, LineChart as LineChartIcon, Handshake, TimerOff, FileText, LifeBuoy, Target, CheckCircle2, XCircle } from "lucide-react";
-import { StatCard } from "@/components/shared/stat-card";
 import { ReportChartCard } from "./report-chart-card";
+import { ReportChartLegend, ReportChartTooltip, REPORT_CHART_COLORS, ReportMetricCard } from "./report-visuals";
 import type { SalesOverviewReport as SalesOverviewReportType } from "@/lib/crm/report-queries";
 import { formatCurrency } from "@/lib/crm/utils";
 
-const COLORS = ["#0ea5e9", "#f59e0b", "#ef4444", "#10b981", "#6366f1", "#ec4899", "#8b5cf6"];
-
 export function SalesOverviewReport({ data }: { data: SalesOverviewReportType }) {
   const stats = [
-    { title: "Total Companies", value: String(data.totalCompanies), icon: Users, tone: "slate" as const },
-    { title: "New Leads", value: String(data.newLeadsInPeriod), description: "In selected period", icon: Target, tone: "blue" as const },
-    { title: "Hot Leads", value: String(data.hotLeads), icon: Flame, tone: "rose" as const },
-    { title: "Pipeline Value", value: formatCurrency(data.pipelineValue), icon: LineChartIcon, tone: "slate" as const },
-    { title: "Won Deals", value: String(data.wonDeals), icon: CheckCircle2, tone: "teal" as const },
-    { title: "Lost Deals", value: String(data.lostDeals), icon: XCircle, tone: "rose" as const },
-    { title: "Meetings", value: String(data.meetingsCompleted), icon: Handshake, tone: "amber" as const },
-    { title: "Follow-ups Due", value: String(data.followupsDue), icon: TimerOff, tone: "amber" as const },
-    { title: "Overdue", value: String(data.overdueFollowups), icon: TimerOff, tone: "rose" as const },
-    { title: "Documents", value: String(data.documentsSubmitted), icon: FileText, tone: "blue" as const },
-    { title: "Open Help", value: String(data.openHelpRequests), icon: LifeBuoy, tone: "amber" as const },
+    { title: "Total Companies", value: String(data.totalCompanies), detail: "Active leads and company records", tone: "slate" as const },
+    { title: "New Leads", value: String(data.newLeadsInPeriod), detail: "Created during the selected period", tone: "sky" as const },
+    { title: "Hot Leads", value: String(data.hotLeads), detail: "High-intent opportunities to prioritize", tone: "rose" as const },
+    { title: "Pipeline Value", value: formatCurrency(data.pipelineValue), detail: "Estimated value across open deals", tone: "teal" as const },
+    { title: "Won Deals", value: String(data.wonDeals), detail: "Deals already converted", tone: "teal" as const },
+    { title: "Lost Deals", value: String(data.lostDeals), detail: "Closed opportunities that were lost", tone: "rose" as const },
+    { title: "Meetings", value: String(data.meetingsCompleted), detail: "Logged client conversations", tone: "amber" as const },
+    { title: "Follow-ups Due", value: String(data.followupsDue), detail: "Pending actions requiring attention", tone: "amber" as const },
+    { title: "Overdue", value: String(data.overdueFollowups), detail: "Follow-ups now overdue", tone: "rose" as const },
+    { title: "Documents", value: String(data.documentsSubmitted), detail: "Submitted files and proposals", tone: "sky" as const },
+    { title: "Open Help", value: String(data.openHelpRequests), detail: "Internal blockers still unresolved", tone: "amber" as const },
   ];
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
-          <StatCard key={stat.title} {...stat} />
+          <ReportMetricCard key={stat.title} title={stat.title} value={stat.value} detail={stat.detail} tone={stat.tone} />
         ))}
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <ReportChartCard title="Lead Temperature Distribution">
+        <ReportChartCard
+          title="Lead Temperature Distribution"
+          description="See how current opportunities are spread by sales temperature."
+          isEmpty={data.leadTemperatureDistribution.length === 0}
+        >
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -61,79 +62,93 @@ export function SalesOverviewReport({ data }: { data: SalesOverviewReportType })
                 nameKey="temperature"
               >
                 {data.leadTemperatureDistribution.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Cell key={`cell-${index}`} fill={REPORT_CHART_COLORS[index % REPORT_CHART_COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip />
-              <Legend />
+              <Tooltip content={<ReportChartTooltip />} />
+              <Legend content={<ReportChartLegend />} />
             </PieChart>
           </ResponsiveContainer>
         </ReportChartCard>
 
-        <ReportChartCard title="Pipeline Stage Distribution">
+        <ReportChartCard
+          title="Pipeline Stage Distribution"
+          description="Compare how many deals are currently sitting in each active stage."
+          isEmpty={data.pipelineStageDistribution.length === 0}
+        >
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data.pipelineStageDistribution} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+              <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" horizontal vertical={false} />
               <XAxis type="number" hide />
               <YAxis 
                 dataKey="stage" 
                 type="category" 
                 width={100} 
                 fontSize={12}
-                tick={{ fill: "currentColor" }}
+                tick={{ fill: "#64748b" }}
               />
               <Tooltip 
-                cursor={{ fill: 'transparent' }}
-                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                cursor={{ fill: "rgba(148, 163, 184, 0.08)" }}
+                content={<ReportChartTooltip />}
               />
-              <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+              <Bar dataKey="count" radius={[0, 8, 8, 0]}>
                 {data.pipelineStageDistribution.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
+                  <Cell key={`cell-${index}`} fill={entry.color || REPORT_CHART_COLORS[index % REPORT_CHART_COLORS.length]} />
                 ))}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
         </ReportChartCard>
 
-        <ReportChartCard title="Monthly Lead Creation Trend">
+        <ReportChartCard
+          title="Monthly Lead Creation Trend"
+          description="Track lead creation volume over time to spot growth or slowdowns."
+          isEmpty={data.monthlyLeadCreationTrend.length === 0}
+        >
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data.monthlyLeadCreationTrend}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
               <XAxis 
                 dataKey="month" 
                 fontSize={12}
+                tick={{ fill: "#64748b" }}
                 tickFormatter={(val) => {
                   const [year, month] = val.split('-');
                   const date = new Date(parseInt(year), parseInt(month) - 1);
                   return date.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
                 }}
               />
-              <YAxis fontSize={12} />
-              <Tooltip />
+              <YAxis fontSize={12} tick={{ fill: "#64748b" }} />
+              <Tooltip content={<ReportChartTooltip />} />
               <Line 
                 type="monotone" 
                 dataKey="count" 
-                stroke="#0ea5e9" 
-                strokeWidth={2} 
-                dot={{ fill: "#0ea5e9", r: 4 }}
-                activeDot={{ r: 6 }}
+                stroke="#0f766e" 
+                strokeWidth={2.5} 
+                dot={{ fill: "#0f766e", r: 4, stroke: "#ffffff", strokeWidth: 2 }}
+                activeDot={{ r: 6, fill: "#0f766e", stroke: "#ffffff", strokeWidth: 2 }}
               />
             </LineChart>
           </ResponsiveContainer>
         </ReportChartCard>
 
-        <ReportChartCard title="Meeting Activity Trend">
+        <ReportChartCard
+          title="Meeting Activity Trend"
+          description="Monitor recent meeting activity to keep client conversations moving."
+          isEmpty={data.meetingActivityTrend.length === 0}
+        >
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data.meetingActivityTrend}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
               <XAxis 
                 dataKey="date" 
                 fontSize={12}
+                tick={{ fill: "#64748b" }}
                 tickFormatter={(val) => new Date(val).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
               />
-              <YAxis fontSize={12} />
-              <Tooltip />
-              <Bar dataKey="count" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+              <YAxis fontSize={12} tick={{ fill: "#64748b" }} />
+              <Tooltip content={<ReportChartTooltip />} />
+              <Bar dataKey="count" fill="#f59e0b" radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ReportChartCard>

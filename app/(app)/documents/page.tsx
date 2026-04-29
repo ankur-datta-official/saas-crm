@@ -42,7 +42,7 @@ export default async function DocumentsPage({ searchParams }: PageProps) {
           </Button>
         }
       />
-      <GuidanceStrip>
+      <GuidanceStrip dismissible storageKey="crm-tip-documents">
         Keep commercial files linked to the right company, meeting, or follow-up so your history stays easy to review.
       </GuidanceStrip>
 

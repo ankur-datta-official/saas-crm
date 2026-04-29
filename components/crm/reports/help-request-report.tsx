@@ -15,11 +15,10 @@ import {
 } from "recharts";
 import { ReportChartCard } from "./report-chart-card";
 import { ReportDataTable } from "./report-data-table";
+import { ReportChartLegend, ReportChartTooltip, REPORT_CHART_COLORS, ReportMetricCard } from "./report-visuals";
 import type { HelpRequestReportData } from "@/lib/crm/report-queries";
 import { HelpRequestStatusBadge, HelpRequestPriorityBadge, HelpRequestTypeBadge } from "@/components/crm/help-request-badges";
 import Link from "next/link";
-
-const COLORS = ["#0ea5e9", "#f59e0b", "#ef4444", "#10b981", "#6366f1", "#ec4899", "#8b5cf6"];
 
 export function HelpRequestReport({ data }: { data: HelpRequestReportData }) {
   const columns = [
@@ -68,7 +67,7 @@ export function HelpRequestReport({ data }: { data: HelpRequestReportData }) {
   return (
     <div className="space-y-6">
       <div className="grid gap-6 md:grid-cols-2">
-        <ReportChartCard title="Help Requests by Type">
+        <ReportChartCard title="Help Requests by Type" description="See which blocker types are appearing most often." isEmpty={data.helpRequestsByType.length === 0}>
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -82,23 +81,23 @@ export function HelpRequestReport({ data }: { data: HelpRequestReportData }) {
                 nameKey="type"
               >
                 {data.helpRequestsByType.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Cell key={`cell-${index}`} fill={REPORT_CHART_COLORS[index % REPORT_CHART_COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip />
-              <Legend />
+              <Tooltip content={<ReportChartTooltip />} />
+              <Legend content={<ReportChartLegend />} />
             </PieChart>
           </ResponsiveContainer>
         </ReportChartCard>
 
-        <ReportChartCard title="Help Requests by Priority">
+        <ReportChartCard title="Help Requests by Priority" description="Review urgency mix across the current request queue." isEmpty={data.helpRequestsByPriority.length === 0}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data.helpRequestsByPriority}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="priority" fontSize={12} />
-              <YAxis fontSize={12} />
-              <Tooltip />
-              <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+              <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="priority" fontSize={12} tick={{ fill: "#64748b" }} />
+              <YAxis fontSize={12} tick={{ fill: "#64748b" }} />
+              <Tooltip content={<ReportChartTooltip />} />
+              <Bar dataKey="count" radius={[8, 8, 0, 0]}>
                 {data.helpRequestsByPriority.map((entry, index) => (
                   <Cell 
                     key={`cell-${index}`} 
@@ -116,24 +115,10 @@ export function HelpRequestReport({ data }: { data: HelpRequestReportData }) {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Open Requests</p>
-          <p className="mt-2 text-3xl font-bold text-amber-600">{data.openHelpRequests}</p>
-        </div>
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Urgent Requests</p>
-          <p className="mt-2 text-3xl font-bold text-rose-600">{data.urgentHelpRequests}</p>
-        </div>
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Resolved Requests</p>
-          <p className="mt-2 text-3xl font-bold text-teal-600">{data.resolvedRequests}</p>
-        </div>
-        <div className="rounded-lg border bg-card p-4 text-center">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Top Assignee</p>
-          <p className="mt-2 text-xl font-bold truncate">
-            {data.helpRequestsByAssignedUser[0]?.user || "N/A"}
-          </p>
-        </div>
+        <ReportMetricCard title="Open Requests" value={String(data.openHelpRequests)} detail="Requests still waiting for resolution" tone="amber" />
+        <ReportMetricCard title="Urgent Requests" value={String(data.urgentHelpRequests)} detail="Highest-priority blockers right now" tone="rose" />
+        <ReportMetricCard title="Resolved Requests" value={String(data.resolvedRequests)} detail="Requests closed successfully" tone="teal" />
+        <ReportMetricCard title="Top Assignee" value={data.helpRequestsByAssignedUser[0]?.user || "N/A"} detail="Most assigned support owner" tone="sky" />
       </div>
 
       <ReportDataTable 

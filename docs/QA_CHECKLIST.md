@@ -74,6 +74,11 @@ Use this checklist for final manual QA before a demo, staging release, or produc
 - Confirm storage limit validation is user-friendly.
 - Open document detail.
 - Download a document.
+- Upload an image file and confirm the detail page shows a preview.
+- Upload a PDF and confirm the detail page shows an embedded preview or fallback download path.
+- Upload an Office file and confirm a clean preview placeholder appears.
+- Confirm clicking Download automatically saves the file to the device.
+- Confirm document previews and downloads still work with a private `crm-documents` bucket.
 - Edit document metadata.
 - Archive a document.
 
@@ -90,8 +95,11 @@ Use this checklist for final manual QA before a demo, staging release, or produc
 
 - Open `/reports`.
 - Confirm protected access requires the correct permission.
+- Confirm the reports page feels clear on first impression and does not look overly crowded.
 - Test filters.
 - Test export actions available for the current plan and permissions.
+- Confirm charts show a clean empty state when there is no report data.
+- Confirm charts remain readable and responsive on smaller screens.
 
 ## Team and permissions
 
@@ -104,6 +112,17 @@ Use this checklist for final manual QA before a demo, staging release, or produc
 - Change a user role.
 - Deactivate and reactivate a user.
 - Edit role permissions.
+
+## Profile settings
+
+- Open `/settings/profile`.
+- Update full name.
+- Update phone, designation, and department.
+- Upload an avatar image.
+- Confirm the avatar appears in the topbar.
+- Try an invalid file type and confirm it is blocked.
+- Try a large image over 2MB and confirm it is blocked.
+- Confirm email remains read-only.
 
 ## Subscription
 
@@ -151,6 +170,11 @@ Use this checklist for final manual QA before a demo, staging release, or produc
 - Confirm `/subscription` requires `subscription.view`.
 - Confirm one organization cannot view another organization’s data through search, lists, reports, invites, or notifications.
 
+## Guidance strips
+
+- Confirm dismissible guidance strips can be closed on major CRM pages.
+- Confirm dismissed guidance stays hidden after refresh via localStorage.
+
 ## Final checks
 
 - Review the main CRM pages for visual consistency in headers, cards, buttons, inputs, tables, and badges.
@@ -162,12 +186,20 @@ Use this checklist for final manual QA before a demo, staging release, or produc
   - Mobile view remains readable.
 - Review major create and edit forms for UX quality:
   - Required fields are clear.
-  - Optional fields are collapsible where appropriate.
+  - Optional sections are visible by default.
   - Cancel returns to the correct place.
   - Save works.
   - Save & Add Another works where available.
   - Validation and upload errors are user-friendly.
   - Mobile layout remains readable.
+- Run a dedicated form QA pass:
+  - Required fields match validation.
+  - Optional sections are visible by default.
+  - Save bar does not overlap content.
+  - Required asterisks are correct.
+  - Optional email and URL validation works only when values are provided.
+  - Save and edit flows work.
+  - Mobile form layout works.
 - Review list and table UX quality:
   - No full-page horizontal scroll appears.
   - Filters are understandable and “More filters” reads like an action trigger.

@@ -3,14 +3,28 @@
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ReactNode } from "react";
+import { cn } from "@/lib/utils";
+import { ReportSectionIntro } from "./report-visuals";
 
 interface ReportTabsProps {
   currentTab: string;
   lockedTabs?: string[];
+  description?: string;
   children: ReactNode;
 }
 
-export function ReportTabs({ currentTab, lockedTabs = [], children }: ReportTabsProps) {
+const reportTabs = [
+  { value: "sales-overview", label: "Sales Overview" },
+  { value: "leads", label: "Leads" },
+  { value: "pipeline", label: "Pipeline" },
+  { value: "meetings", label: "Meetings" },
+  { value: "follow-ups", label: "Follow-ups" },
+  { value: "documents", label: "Documents" },
+  { value: "help-requests", label: "Help Requests" },
+  { value: "team", label: "Team Performance" },
+] as const;
+
+export function ReportTabs({ currentTab, lockedTabs = [], description, children }: ReportTabsProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -27,18 +41,24 @@ export function ReportTabs({ currentTab, lockedTabs = [], children }: ReportTabs
 
   return (
     <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
-      <div className="flex items-center justify-between overflow-x-auto pb-2 scrollbar-hide print:hidden">
-        <TabsList className="h-10">
-          <TabsTrigger value="sales-overview">Sales Overview</TabsTrigger>
-          <TabsTrigger value="leads">Leads</TabsTrigger>
-          <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
-          <TabsTrigger value="meetings">Meetings</TabsTrigger>
-          <TabsTrigger value="follow-ups">Follow-ups</TabsTrigger>
-          <TabsTrigger value="documents" disabled={lockedTabs.includes("documents")}>Documents</TabsTrigger>
-          <TabsTrigger value="help-requests" disabled={lockedTabs.includes("help-requests")}>Help Requests</TabsTrigger>
-          <TabsTrigger value="team" disabled={lockedTabs.includes("team")}>Team Performance</TabsTrigger>
+      <div className="overflow-x-auto pb-1 scrollbar-hide print:hidden">
+        <TabsList className="inline-flex h-auto min-w-max gap-2 rounded-2xl border border-slate-200 bg-white p-1 shadow-soft">
+          {reportTabs.map((tab) => (
+            <TabsTrigger
+              key={tab.value}
+              value={tab.value}
+              disabled={lockedTabs.includes(tab.value)}
+              className={cn(
+                "rounded-xl px-4 py-2 text-sm text-slate-600 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none",
+                lockedTabs.includes(tab.value) && "opacity-50",
+              )}
+            >
+              {tab.label}
+            </TabsTrigger>
+          ))}
         </TabsList>
       </div>
+      {description ? <ReportSectionIntro text={description} /> : null}
       <div className="mt-6">
         {children}
       </div>

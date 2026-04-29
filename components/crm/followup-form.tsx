@@ -8,12 +8,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FormActionBar, FormContextHint, FormRequiredNote } from "@/components/shared/form-helpers";
+import { FormActionBar, FormContextHint, FormRequiredNote, FormSection } from "@/components/shared/form-helpers";
 import { createFollowup, updateFollowup } from "@/lib/crm/followup-actions";
-import { followupSchema, followupTypeOptions, followupPriorityOptions, followupStatusOptions } from "@/lib/crm/schemas";
+import { followupSchema, followupTypeOptions, followupPriorityOptions, followupStatusOptions, type FollowupFormValues } from "@/lib/crm/schemas";
 import type { Company, ContactPerson, Interaction, Followup, TeamMemberOption } from "@/lib/crm/types";
 
 type FollowupFormProps = {
@@ -43,7 +42,7 @@ export function FollowupForm({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isPending, startTransition] = useTransition();
 
-  const form = useForm({
+  const form = useForm<FollowupFormValues>({
     resolver: zodResolver(followupSchema),
     defaultValues: {
       company_id: followup?.company_id ?? defaultCompanyId ?? "",
@@ -64,7 +63,7 @@ export function FollowupForm({
   const availableContacts = contacts.filter((c) => c.company_id === selectedCompanyId);
   const availableInteractions = interactions.filter((i) => i.company_id === selectedCompanyId);
 
-  function onSubmit(values: any, mode: "save" | "addAnother" = "save") {
+  function onSubmit(values: FollowupFormValues, mode: "save" | "addAnother" = "save") {
     setServerError(null);
     setSuccessMessage(null);
     setFieldErrors({});
@@ -112,7 +111,7 @@ export function FollowupForm({
 
   return (
     <form className="space-y-5" onSubmit={form.handleSubmit((values) => onSubmit(values, "save"))}>
-      <FormRequiredNote message="Company, title, and scheduled date are required. Use the optional sections only when you need to connect the follow-up to a person, meeting, or reminder setup." />
+      <FormRequiredNote message="Company, title, scheduled date, follow-up type, and status are required. Use the optional sections only when you need to connect the follow-up to a person, meeting, or reminder setup." />
       {(defaultCompanyId || defaultContactId || defaultInteractionId) && !followup ? (
         <FormContextHint message="This follow-up was opened from an existing CRM record, so related context has been preselected where possible." />
       ) : null}
@@ -140,16 +139,23 @@ export function FollowupForm({
           <Input type="datetime-local" {...form.register("scheduled_at")} />
         </Field>
 
-        <SelectField label="Follow-up Type" {...form.register("followup_type")}>
+        <SelectField label="Follow-up Type" required {...form.register("followup_type")}>
           {followupTypeOptions.map((type) => (
             <option key={type} value={type}>
               {type}
             </option>
           ))}
         </SelectField>
+        <SelectField label="Status" required {...form.register("status")}>
+          {followupStatusOptions.map((s) => (
+            <option key={s} value={s} className="capitalize">
+              {s}
+            </option>
+          ))}
+        </SelectField>
       </FormSection>
 
-      <CollapsibleSection title="Contact & Meeting Context" description="Connect this follow-up to a specific person or meeting.">
+      <FormSection title="Contact & Meeting Context" description="Connect this follow-up to a specific person or meeting." optional>
         <SelectField label="Contact Person" error={fieldErrors.contact_person_id} {...form.register("contact_person_id")}>
           <option value="">No contact selected</option>
           {availableContacts.map((c) => (
@@ -167,9 +173,15 @@ export function FollowupForm({
             </option>
           ))}
         </SelectField>
-      </CollapsibleSection>
+      </FormSection>
 
-      <CollapsibleSection title="Reminder & Priority" description="Set urgency and notification timing.">
+      <FormSection title="Reminder Settings" description="Set reminder timing for this follow-up." optional>
+        <Field label="Reminder Before (minutes)" error={form.formState.errors.reminder_before_minutes?.message}>
+          <Input type="number" min={0} {...form.register("reminder_before_minutes")} />
+        </Field>
+      </FormSection>
+
+      <FormSection title="Assignment & Priority" description="Set ownership and urgency for this follow-up." optional>
         <SelectField label="Priority" {...form.register("priority")}>
           {followupPriorityOptions.map((p) => (
             <option key={p} value={p} className="capitalize">
@@ -177,10 +189,6 @@ export function FollowupForm({
             </option>
           ))}
         </SelectField>
-
-        <Field label="Reminder Before (minutes)" error={form.formState.errors.reminder_before_minutes?.message}>
-          <Input type="number" min={0} {...form.register("reminder_before_minutes")} />
-        </Field>
 
         <SelectField label="Assigned User" error={fieldErrors.assigned_user_id} {...form.register("assigned_user_id")}>
           <option value="">Unassigned</option>
@@ -190,17 +198,9 @@ export function FollowupForm({
             </option>
           ))}
         </SelectField>
+      </FormSection>
 
-        <SelectField label="Status" {...form.register("status")}>
-          {followupStatusOptions.map((s) => (
-            <option key={s} value={s} className="capitalize">
-              {s}
-            </option>
-          ))}
-        </SelectField>
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Notes" description="Additional details or context for this follow-up." columns="grid-cols-1">
+      <FormSection title="Notes" description="Additional details or context for this follow-up." optional contentClassName="grid-cols-1">
         <div className="space-y-2">
           <Label htmlFor="description">Description</Label>
           <textarea
@@ -210,7 +210,7 @@ export function FollowupForm({
             placeholder="Add specific details about what needs to be discussed or achieved."
           />
         </div>
-      </CollapsibleSection>
+      </FormSection>
 
       {serverError && <p className="rounded-md bg-rose-50 p-3 text-sm text-rose-700">{serverError}</p>}
       {successMessage && <p className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">{successMessage}</p>}
@@ -235,47 +235,6 @@ export function FollowupForm({
         )}
       </FormActionBar>
     </form>
-  );
-}
-
-function FormSection({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">{children}</CardContent>
-    </Card>
-  );
-}
-
-function CollapsibleSection({
-  title,
-  description,
-  children,
-  columns = "grid-cols-1 md:grid-cols-2 xl:grid-cols-4",
-}: {
-  title: string;
-  description: string;
-  children: React.ReactNode;
-  columns?: string;
-}) {
-  return (
-    <details className="rounded-xl border bg-card shadow-soft" open={false}>
-      <summary className="cursor-pointer list-none p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h3 className="font-semibold">{title}</h3>
-            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-          </div>
-          <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
-            Optional
-          </span>
-        </div>
-      </summary>
-      <div className={`grid gap-4 p-5 pt-0 ${columns}`}>{children}</div>
-    </details>
   );
 }
 

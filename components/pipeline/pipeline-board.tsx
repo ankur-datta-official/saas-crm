@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
+import { GuidanceStrip } from "@/components/shared/guidance-strip";
 import { LeadTemperatureBadge } from "@/components/crm/lead-temperature-badge";
 import { RatingBadge } from "@/components/crm/rating-badge";
 import { Button } from "@/components/ui/button";
@@ -265,9 +266,9 @@ export function PipelineBoard({
           </Button>
         }
       />
-      <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-600 shadow-soft">
+      <GuidanceStrip dismissible storageKey="crm-tip-pipeline">
         Drag a deal card into the next stage when progress happens, or use the actions menu to log a meeting, add a follow-up, or mark it won or lost.
-      </div>
+      </GuidanceStrip>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <SummaryCard

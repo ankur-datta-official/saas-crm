@@ -9,16 +9,17 @@ import type { Profile } from "@/lib/auth/session";
 type AppShellProps = {
   children: React.ReactNode;
   profile: Profile | null;
+  organizationName: string;
   notifications: NotificationRow[];
   unreadNotificationCount: number;
 };
 
-export function AppShell({ children, profile, notifications, unreadNotificationCount }: AppShellProps) {
+export function AppShell({ children, profile, organizationName, notifications, unreadNotificationCount }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-background md:flex md:h-screen md:overflow-hidden">
-      <AppSidebar open={sidebarOpen} onOpenChange={setSidebarOpen} />
+      <AppSidebar open={sidebarOpen} onOpenChange={setSidebarOpen} organizationName={organizationName} />
       <div className="flex min-w-0 flex-1 flex-col md:h-screen md:min-h-0">
         <AppTopbar
           onMenuClick={() => setSidebarOpen(true)}

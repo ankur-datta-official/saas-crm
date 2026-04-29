@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
+import { resolveProfileAvatarUrl } from "@/lib/profile/profile-utils";
 import { createClient } from "@/lib/supabase/server";
 
 export type Profile = {
@@ -76,7 +77,14 @@ export async function getCurrentProfile(): Promise<Profile | null> {
     throw new Error(error.message);
   }
 
-  return data;
+  if (!data) {
+    return null;
+  }
+
+  return {
+    ...data,
+    avatar_url: await resolveProfileAvatarUrl(data.avatar_url),
+  };
 }
 
 export async function getCurrentOrganization(): Promise<Organization | null> {

@@ -19,7 +19,8 @@ import { Button } from "@/components/ui/button";
 import { ConfirmModal } from "@/components/shared/confirm-modal";
 import { EmptyState } from "@/components/shared/empty-state";
 import { DocumentTypeBadge, DocumentStatusBadge, FileSizeBadge } from "./document-badges";
-import { archiveDocument, logDocumentDownload, getSignedDocumentUrl } from "@/lib/crm/document-actions";
+import { archiveDocument } from "@/lib/crm/document-actions";
+import { useDocumentDownload } from "./document-download";
 import type { Document, Company, TeamMemberOption } from "@/lib/crm/types";
 import { documentTypeOptions, documentStatusOptions } from "@/lib/crm/schemas";
 import { cn } from "@/lib/utils";
@@ -41,6 +42,7 @@ export function DocumentTable({ documents, companies, teamMembers }: DocumentTab
   const searchParams = useSearchParams();
   const [archiveId, setArchiveId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const { downloadDocument, downloadingDocumentId, downloadError, clearDownloadError } = useDocumentDownload();
 
   function applyFilters(formData: FormData) {
     const params = new URLSearchParams();
@@ -50,17 +52,6 @@ export function DocumentTable({ documents, companies, teamMembers }: DocumentTab
     }
     router.push(`/documents?${params.toString()}`);
   }
-
-  const handleDownload = async (document: Document) => {
-    try {
-      const signedUrl = await getSignedDocumentUrl(document.file_path);
-      await logDocumentDownload(document.id);
-      window.open(signedUrl, "_blank");
-    } catch (error) {
-      console.error("Download failed:", error);
-      alert("Failed to download document. Please try again.");
-    }
-  };
 
   return (
     <div className="space-y-4">
@@ -137,7 +128,13 @@ export function DocumentTable({ documents, companies, teamMembers }: DocumentTab
           />
         ) : (
           documents.map((doc) => (
-            <DocumentCard key={doc.id} document={doc} onDownload={handleDownload} onArchive={setArchiveId} />
+            <DocumentCard
+              key={doc.id}
+              document={doc}
+              onDownload={(target) => void downloadDocument(target.id)}
+              onArchive={setArchiveId}
+              isDownloading={downloadingDocumentId === doc.id}
+            />
           ))
         )}
       </div>
@@ -211,7 +208,13 @@ export function DocumentTable({ documents, companies, teamMembers }: DocumentTab
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleDownload(doc)}><FileDown className="w-4 h-4 mr-2" />Download</DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => void downloadDocument(doc.id)}
+                              disabled={downloadingDocumentId === doc.id}
+                            >
+                              <FileDown className="w-4 h-4 mr-2" />
+                              {downloadingDocumentId === doc.id ? "Downloading..." : "Download"}
+                            </DropdownMenuItem>
                             <DropdownMenuItem asChild><Link href={`/documents/${doc.id}/edit`}><Edit className="w-4 h-4 mr-2" />Edit</Link></DropdownMenuItem>
                             <DropdownMenuItem 
                               className="text-destructive"
@@ -257,6 +260,14 @@ export function DocumentTable({ documents, companies, teamMembers }: DocumentTab
           });
         }}
       />
+      {downloadError ? (
+        <div className="rounded-md border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+          {downloadError}
+          <button type="button" className="ml-2 underline underline-offset-2" onClick={clearDownloadError}>
+            Dismiss
+          </button>
+        </div>
+      ) : null}
       {isPending && <p className="text-xs text-muted-foreground animate-pulse">Processing...</p>}
     </div>
   );
@@ -265,11 +276,13 @@ export function DocumentTable({ documents, companies, teamMembers }: DocumentTab
 function DocumentCard({ 
   document, 
   onDownload, 
-  onArchive 
+  onArchive,
+  isDownloading,
 }: { 
   document: Document; 
   onDownload: (doc: Document) => void;
   onArchive: (id: string) => void;
+  isDownloading: boolean;
 }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3 shadow-soft">
@@ -314,7 +327,7 @@ function DocumentCard({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => onDownload(document)}><FileDown className="w-4 h-4 mr-2" />Download</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onDownload(document)} disabled={isDownloading}><FileDown className="w-4 h-4 mr-2" />{isDownloading ? "Downloading..." : "Download"}</DropdownMenuItem>
             <DropdownMenuItem asChild><Link href={`/documents/${document.id}/edit`}><Edit className="w-4 h-4 mr-2" />Edit</Link></DropdownMenuItem>
             <DropdownMenuItem className="text-destructive" onClick={() => onArchive(document.id)}><Archive className="w-4 h-4 mr-2" />Archive</DropdownMenuItem>
           </DropdownMenuContent>
