@@ -17,6 +17,31 @@ Use this checklist for final manual QA before a demo, staging release, or produc
 - Confirm dashboard stats load without layout breaks.
 - Confirm active users and pending invitations widgets load if enabled.
 - Confirm dashboard data is scoped to the current organization only.
+- Confirm redesigned KPI cards show real CRM data only.
+- Confirm Today's Tasks merges real follow-ups, help requests, and meetings correctly.
+- Confirm the pipeline funnel uses real pipeline stages.
+- Confirm the lead trend chart handles empty data cleanly.
+- Confirm the deals-by-stage donut chart handles empty data cleanly.
+- Confirm alert cards link to the correct modules.
+- Confirm the mobile dashboard layout stacks cleanly without horizontal overflow.
+- Confirm no fake dashboard data appears anywhere.
+- Confirm the header matches the reference-style airy layout.
+- Confirm the KPI row feels compact and balanced.
+- Confirm Today's Tasks does not render as an oversized/tall card.
+- Confirm the Monthly Activity Target visual progress is readable and accurate.
+- Confirm the pipeline funnel reads visually as a funnel, not simple bars.
+- Confirm the lower chart row stays balanced without oversized whitespace.
+- Confirm the alerts row renders as 3 cards or one no-critical-alert state.
+- **Currency Formatting:** Confirm all monetary values display with ৳ (Bangladeshi Taka) instead of $.
+- **Currency Formatting:** Confirm dashboard Pipeline Value KPI uses ৳ formatting.
+- **Currency Formatting:** Confirm pipeline funnel summary shows ৳ formatted values.
+- **Pipeline Overview:** Confirm funnel uses multicolor trapezoid layout with proper tapering widths.
+- **Pipeline Overview:** Confirm each stage displays name and count badge within colored segments.
+- **Pipeline Overview:** Confirm funnel displays pipeline total value summary below.
+- **Deals by Stage:** Confirm donut chart shows center label with total deals count.
+- **Deals by Stage:** Confirm legend displays stage name, deal count, and percentage.
+- **Deals by Stage:** Confirm tooltip shows stage name, deal count, and percentage on hover.
+- **Visual Polish:** Confirm KPI cards have refined shadows, ring accents, and clean typography.
 
 ## Companies
 
@@ -168,7 +193,7 @@ Use this checklist for final manual QA before a demo, staging release, or produc
 - Confirm `/reports` requires `reports.view`.
 - Confirm `/settings` requires `settings.view` or `settings.manage`.
 - Confirm `/subscription` requires `subscription.view`.
-- Confirm one organization cannot view another organization’s data through search, lists, reports, invites, or notifications.
+- Confirm one organization cannot view another organization's data through search, lists, reports, invites, or notifications.
 
 ## Guidance strips
 
@@ -202,7 +227,7 @@ Use this checklist for final manual QA before a demo, staging release, or produc
   - Mobile form layout works.
 - Review list and table UX quality:
   - No full-page horizontal scroll appears.
-  - Filters are understandable and “More filters” reads like an action trigger.
+  - Filters are understandable and "More filters" reads like an action trigger.
   - Primary row or card action is clear.
   - Mobile cards remain readable.
   - Empty states are helpful.

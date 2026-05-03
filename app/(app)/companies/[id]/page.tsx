@@ -4,6 +4,7 @@ import { Building2, CalendarClock, FileText, Handshake, LifeBuoy, NotebookTabs, 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CompanyProfileHeader } from "@/components/crm/company-profile-header";
+import { ScoringActivityPanel } from "@/components/scoring/scoring-ui";
 import { ContactProfileCard } from "@/components/crm/contact-profile-card";
 import { InteractionTimelineCard } from "@/components/crm/interaction-timeline-card";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -17,16 +18,18 @@ import { FollowupCard } from "@/components/crm/followup-card";
 import { DocumentCard } from "@/components/crm/document-card";
 import { HelpRequestCard } from "@/components/crm/help-request-card";
 import { DocumentTypeBadge, DocumentStatusBadge } from "@/components/crm/document-badges";
+import { getCompanyScoringHistory } from "@/lib/scoring/queries";
 
 export default async function CompanyProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [company, contacts, interactions, followups, documents, helpRequests] = await Promise.all([
+  const [company, contacts, interactions, followups, documents, helpRequests, scoringHistory] = await Promise.all([
     getCompanyById(id),
     getContactsByCompany(id),
     getInteractionsByCompany(id),
     getFollowupsByCompany(id),
     getDocumentsByCompany(id),
     getHelpRequestsByCompany(id),
+    getCompanyScoringHistory(id, 20),
   ]);
 
   if (!company) {
@@ -40,6 +43,7 @@ export default async function CompanyProfilePage({ params }: { params: Promise<{
         <StatCard title="Estimated Value" value={formatCurrency(company.estimated_value)} icon={Building2} tone="teal" />
         <StatCard title="Success Rating" value={company.success_rating ? `${company.success_rating}/10` : "Not rated"} icon={NotebookTabs} tone="amber" />
         <StatCard title="Lead Temperature" value={company.lead_temperature} icon={Handshake} tone={company.lead_temperature === "hot" ? "rose" : "blue"} />
+        <StatCard title="Lead Score" value={String(company.lead_score)} icon={Handshake} tone="amber" />
       </section>
       <Card>
         <CardHeader>
@@ -200,9 +204,11 @@ export default async function CompanyProfilePage({ params }: { params: Promise<{
         </CardContent>
       </Card>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-2">
-        <EmptyState title="Activity Log" description="Recent company activity and audit history will appear here when records are available." icon={NotebookTabs} />
-      </section>
+      <ScoringActivityPanel
+        activities={scoringHistory}
+        title="Lead Scoring History"
+        description="See which actions on this lead awarded points and how the score has changed."
+      />
     </div>
   );
 }

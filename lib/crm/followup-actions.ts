@@ -6,6 +6,7 @@ import { requireAuth, requireOrganization } from "@/lib/auth/session";
 import { getSafeErrorMessage, logServerError } from "@/lib/errors";
 import { followupSchema } from "@/lib/crm/schemas";
 import { createNotification } from "@/lib/notifications/notifications";
+import { applyScoringEvent, buildScoreIdempotencyKey } from "@/lib/scoring/service";
 import { createClient } from "@/lib/supabase/server";
 import type { CrmActionState } from "./actions";
 
@@ -154,6 +155,23 @@ export async function completeFollowup(followupId: string): Promise<CrmActionSta
   }
 
   await insertActivityLog("completed", "followup", followupId);
+
+  await applyScoringEvent({
+    organizationId: organization.id,
+    userId: user.id,
+    actionKey: "followup_completed",
+    companyId: followup.company_id,
+    followupId,
+    sourceRecordId: followupId,
+    sourceRecordType: "followup",
+    metadata: {
+      followup_title: followup.title,
+      company_id: followup.company_id,
+    },
+    actorUserId: user.id,
+    addToLeadScore: true,
+    idempotencyKey: buildScoreIdempotencyKey(["followup_completed", followupId]),
+  });
 
   if (followup.created_by && followup.created_by !== user.id) {
     await createNotification({

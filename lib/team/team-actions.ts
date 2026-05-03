@@ -12,6 +12,7 @@ import {
 } from "@/lib/auth/session";
 import { getSafeErrorMessage, logServerError } from "@/lib/errors";
 import { createNotification } from "@/lib/notifications/notifications";
+import { applyScoringEvent, buildScoreIdempotencyKey } from "@/lib/scoring/service";
 import { createClient } from "@/lib/supabase/server";
 import { checkUserLimit } from "@/lib/subscription/subscription-queries";
 import { getPermissions, getRoleById, getRoles } from "./team-queries";
@@ -288,6 +289,30 @@ export async function acceptTeamInvitation(token: string) {
     accepted_user_id: user.id,
     role_id: result.role_id,
   });
+
+  const { data: invitation } = await supabase
+    .from("team_invitations")
+    .select("id, email, invited_by")
+    .eq("id", result.invitation_id as string)
+    .eq("organization_id", result.organization_id as string)
+    .maybeSingle();
+
+  if (invitation?.invited_by && invitation.invited_by !== user.id) {
+    await applyScoringEvent({
+      organizationId: result.organization_id as string,
+      userId: invitation.invited_by,
+      actionKey: "team_invite_accepted",
+      sourceRecordId: invitation.id,
+      sourceRecordType: "team_invitation",
+      metadata: {
+        accepted_user_id: user.id,
+        invited_email: invitation.email,
+      },
+      actorUserId: user.id,
+      addToLeadScore: false,
+      idempotencyKey: buildScoreIdempotencyKey(["team_invite_accepted", invitation.id]),
+    });
+  }
 
   revalidatePath("/team");
   revalidatePath("/dashboard");

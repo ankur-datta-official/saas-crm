@@ -54,6 +54,12 @@ export async function getHelpRequests(filters: HelpRequestFilters = {}) {
   if (filters.requestedBy) {
     query = query.eq("requested_by", filters.requestedBy);
   }
+  if (filters.dateFrom) {
+    query = query.gte("created_at", filters.dateFrom);
+  }
+  if (filters.dateTo) {
+    query = query.lte("created_at", filters.dateTo);
+  }
   if (filters.search) {
     query = query.or(
       `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%,resolution_note.ilike.%${filters.search}%`

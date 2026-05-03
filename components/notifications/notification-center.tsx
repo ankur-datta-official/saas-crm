@@ -84,17 +84,17 @@ export function NotificationCenter({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon" className="relative" aria-label="Open notifications">
-          <Bell />
+        <button className="relative flex size-10 items-center justify-center rounded-xl border border-slate-200 bg-white shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50 outline-none" aria-label="Open notifications">
+          <Bell className="size-5 text-slate-600" />
           {unreadCount > 0 ? (
-            <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
-              {unreadLabel}
+            <span className="absolute -right-1.5 -top-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[11px] font-black text-white shadow-sm ring-2 ring-white">
+              {unreadCount}
             </span>
           ) : null}
           <span className="sr-only">Notifications</span>
-        </Button>
+        </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" sideOffset={10} className="w-[min(22rem,calc(100vw-1rem))] p-0">
+      <DropdownMenuContent align="end" sideOffset={10} className="w-[min(22rem,calc(100vw-1rem))] p-0 rounded-2xl shadow-xl border-slate-200">
         <div className="flex items-center justify-between px-3 py-3">
           <DropdownMenuLabel className="p-0">Notifications</DropdownMenuLabel>
           <Button type="button" variant="ghost" size="sm" className="h-auto px-2 text-xs" disabled={isPending || unreadCount === 0} onClick={handleMarkAllAsRead}>

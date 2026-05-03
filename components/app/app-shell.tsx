@@ -5,16 +5,25 @@ import { AppSidebar } from "@/components/app/app-sidebar";
 import { AppTopbar } from "@/components/app/app-topbar";
 import type { NotificationRow } from "@/lib/notifications/notifications";
 import type { Profile } from "@/lib/auth/session";
+import type { WalletSummary } from "@/lib/scoring/types";
 
-type AppShellProps = {
+export type AppShellProps = {
   children: React.ReactNode;
   profile: Profile | null;
   organizationName: string;
   notifications: NotificationRow[];
   unreadNotificationCount: number;
+  walletSummary: WalletSummary | null;
 };
 
-export function AppShell({ children, profile, organizationName, notifications, unreadNotificationCount }: AppShellProps) {
+export function AppShell({ 
+  children, 
+  profile, 
+  organizationName, 
+  notifications, 
+  unreadNotificationCount,
+  walletSummary
+}: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
@@ -26,6 +35,7 @@ export function AppShell({ children, profile, organizationName, notifications, u
           profile={profile}
           notifications={notifications}
           unreadNotificationCount={unreadNotificationCount}
+          walletSummary={walletSummary}
         />
         <main className="mx-auto w-full max-w-[1500px] min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-6 md:px-6 lg:px-8">{children}</main>
       </div>

@@ -15,6 +15,7 @@ import {
 import { getSafeErrorMessage, logServerError } from "@/lib/errors";
 import { slugify } from "@/lib/crm/utils";
 import { createNotification } from "@/lib/notifications/notifications";
+import { applyScoringEvent, buildScoreIdempotencyKey } from "@/lib/scoring/service";
 import { createClient } from "@/lib/supabase/server";
 import { checkCompanyLimit, requireFeature } from "@/lib/subscription/subscription-queries";
 
@@ -92,6 +93,78 @@ async function requireCompanyInOrganization(companyId: string) {
   return { organization, company: data };
 }
 
+export async function bulkImportCompanies(companies: any[]) {
+  const user = await requireAuth();
+  const organization = await requireOrganization();
+  const supabase = await createClient();
+
+  try {
+    const results = {
+      success: 0,
+      failed: 0,
+      errors: [] as string[],
+    };
+
+    // Use a transaction-like approach or batch insert
+    for (const companyData of companies) {
+      try {
+        // 1. Basic validation or transformation
+        const name = companyData.name || "Unnamed Company";
+        const email = Array.isArray(companyData.emails) ? companyData.emails[0] : companyData.email;
+        const phone = Array.isArray(companyData.phones) ? companyData.phones[0] : companyData.phone;
+
+        // 2. Insert Company
+        const { data: company, error: companyError } = await supabase
+          .from("companies")
+          .insert({
+            organization_id: organization.id,
+            name,
+            email,
+            phone,
+            address: companyData.address,
+            industry_id: companyData.industry_id,
+            category_id: companyData.category_id,
+            pipeline_stage_id: companyData.pipeline_stage_id,
+            success_rating: companyData.rating || 5,
+            lead_temperature: temperatureFromRating(companyData.rating || 5),
+            assigned_user_id: user.id,
+          })
+          .select()
+          .single();
+
+        if (companyError) throw companyError;
+
+        // 3. Insert Multiple Contacts/Emails/Phones if present
+        if (companyData.contacts && Array.isArray(companyData.contacts)) {
+          const contactsToInsert = companyData.contacts.map((c: any) => ({
+            company_id: company.id,
+            organization_id: organization.id,
+            full_name: c.name || "Contact",
+            email: c.email,
+            phone: c.phone,
+            is_primary: !!c.is_primary,
+          }));
+          
+          if (contactsToInsert.length > 0) {
+            await supabase.from("contact_persons").insert(contactsToInsert);
+          }
+        }
+
+        results.success++;
+      } catch (err: any) {
+        results.failed++;
+        results.errors.push(`${companyData.name || "Unknown"}: ${err.message}`);
+      }
+    }
+
+    revalidatePath("/companies");
+    return { ok: true, results };
+  } catch (error) {
+    logServerError("bulkImportCompanies", error);
+    return { ok: false, error: getSafeErrorMessage(error, "Failed to import companies") };
+  }
+}
+
 async function validateCompanyRelations(
   organizationId: string,
   values: {
@@ -99,6 +172,7 @@ async function validateCompanyRelations(
     category_id: string | null;
     pipeline_stage_id: string | null;
     assigned_user_id: string | null;
+    referred_by_user_id?: string | null;
   },
 ): Promise<Record<string, string>> {
   const supabase = await createClient();
@@ -159,6 +233,20 @@ async function validateCompanyRelations(
     }
   }
 
+  if (values.referred_by_user_id) {
+    const { data: referredByUser } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", values.referred_by_user_id)
+      .eq("organization_id", organizationId)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (!referredByUser) {
+      fieldErrors.referred_by_user_id = "Selected referral user is not part of this workspace.";
+    }
+  }
+
   return fieldErrors;
 }
 
@@ -167,7 +255,7 @@ async function getPipelineStageInOrganization(stageId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("pipeline_stages")
-    .select("id, name, color, probability, is_won, is_lost, is_active")
+    .select("id, name, color, probability, position, is_won, is_lost, is_active")
     .eq("id", stageId)
     .eq("organization_id", organization.id)
     .maybeSingle();
@@ -513,11 +601,66 @@ export async function createCompanyAction(values: unknown): Promise<CrmActionSta
   }
 
   await insertActivityLog("company.created", "company", data.id, { name: parsed.data.name });
+
+  await applyScoringEvent({
+    organizationId: organization.id,
+    userId: user.id,
+    actionKey: "lead_created",
+    companyId: data.id,
+    sourceRecordId: data.id,
+    sourceRecordType: "company",
+    metadata: {
+      company_name: parsed.data.name,
+      lead_source: parsed.data.lead_source,
+    },
+    actorUserId: user.id,
+    addToLeadScore: true,
+    idempotencyKey: buildScoreIdempotencyKey(["lead_created", data.id]),
+  });
+
+  if (parsed.data.lead_source) {
+    await applyScoringEvent({
+      organizationId: organization.id,
+      userId: user.id,
+      actionKey: "lead_source_bonus",
+      companyId: data.id,
+      sourceRecordId: data.id,
+      sourceRecordType: "company",
+      metadata: {
+        company_name: parsed.data.name,
+        lead_source: parsed.data.lead_source,
+      },
+      actorUserId: user.id,
+      addToLeadScore: true,
+      idempotencyKey: buildScoreIdempotencyKey(["lead_source_bonus", data.id, parsed.data.lead_source]),
+    });
+  }
+
+  if (parsed.data.referred_by_user_id && parsed.data.referred_by_user_id !== user.id) {
+    await applyScoringEvent({
+      organizationId: organization.id,
+      userId: parsed.data.referred_by_user_id,
+      actionKey: "lead_referral",
+      companyId: data.id,
+      sourceRecordId: data.id,
+      sourceRecordType: "company",
+      metadata: {
+        company_name: parsed.data.name,
+        referred_user_id: parsed.data.referred_by_user_id,
+        created_by_user_id: user.id,
+      },
+      actorUserId: user.id,
+      addToLeadScore: true,
+      idempotencyKey: buildScoreIdempotencyKey(["lead_referral", data.id, parsed.data.referred_by_user_id]),
+    });
+  }
+
   revalidatePath("/companies");
   return { ok: true, id: data.id };
 }
 
 export async function updateCompanyAction(id: string, values: unknown): Promise<CrmActionState> {
+  const user = await requireAuth();
   const organization = await requireOrganization();
   const parsed = companySchema.safeParse(values);
 
@@ -535,7 +678,7 @@ export async function updateCompanyAction(id: string, values: unknown): Promise<
   const supabase = await createClient();
   const { data: existing, error: existingError } = await supabase
     .from("companies")
-    .select("pipeline_stage_id")
+    .select("pipeline_stage_id, pipeline_stages(position, is_won, is_lost)")
     .eq("id", id)
     .eq("organization_id", organization.id)
     .maybeSingle();
@@ -557,6 +700,54 @@ export async function updateCompanyAction(id: string, values: unknown): Promise<
       from: existing?.pipeline_stage_id,
       to: parsed.data.pipeline_stage_id,
     });
+
+    const nextStage = await getPipelineStageInOrganization(parsed.data.pipeline_stage_id);
+    const previousStage = Array.isArray(existing?.pipeline_stages)
+      ? existing?.pipeline_stages[0]
+      : existing?.pipeline_stages;
+    const movedForward =
+      typeof previousStage?.position === "number"
+        ? nextStage.position > previousStage.position
+        : false;
+
+    if (movedForward && !nextStage.is_won && !nextStage.is_lost) {
+      await applyScoringEvent({
+        organizationId: organization.id,
+        userId: user.id,
+        actionKey: "lead_qualified",
+        companyId: id,
+        sourceRecordId: parsed.data.pipeline_stage_id,
+        sourceRecordType: "pipeline_stage",
+        metadata: {
+          from_stage_id: existing?.pipeline_stage_id,
+          to_stage_id: parsed.data.pipeline_stage_id,
+          to_stage_name: nextStage.name,
+        },
+        actorUserId: user.id,
+        addToLeadScore: true,
+        idempotencyKey: buildScoreIdempotencyKey(["lead_qualified", id, parsed.data.pipeline_stage_id]),
+      });
+    }
+
+    const wasWon = Boolean(previousStage?.is_won);
+    if (!wasWon && nextStage.is_won) {
+      await applyScoringEvent({
+        organizationId: organization.id,
+        userId: user.id,
+        actionKey: "lead_converted_won",
+        companyId: id,
+        sourceRecordId: id,
+        sourceRecordType: "company",
+        metadata: {
+          from_stage_id: existing?.pipeline_stage_id,
+          to_stage_id: parsed.data.pipeline_stage_id,
+          to_stage_name: nextStage.name,
+        },
+        actorUserId: user.id,
+        addToLeadScore: true,
+        idempotencyKey: buildScoreIdempotencyKey(["lead_converted_won", id]),
+      });
+    }
   }
 
   revalidatePath("/companies");

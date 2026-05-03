@@ -151,6 +151,7 @@ export const companySchema = z.object({
   industry_id: optionalUuid,
   category_id: optionalUuid,
   lead_source: optionalString,
+  referred_by_user_id: optionalUuid,
   priority: z.preprocess(emptyToUndefined, companyPrioritySchema.optional()).transform((value) => value ?? "medium"),
   assigned_user_id: optionalUuid,
   pipeline_stage_id: z.preprocess(

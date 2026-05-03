@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { BriefcaseBusiness, Building2, CheckCircle2, Circle, KanbanSquare, UserRound } from "lucide-react";
+import { BriefcaseBusiness, Building2, CheckCircle2, Circle, KanbanSquare, Trophy, UserRound } from "lucide-react";
 import { CrmSettingsCard } from "@/components/crm/crm-settings-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { GuidanceStrip } from "@/components/shared/guidance-strip";
@@ -112,6 +112,15 @@ export default async function SettingsPage() {
               ctaLabel="Manage Pipeline"
               badge="Workflow"
               meta={`${pipelineStages.length} active stages`}
+            />
+            <CrmSettingsCard
+              title="Scoring & Rewards"
+              description="Adjust point rules, leaderboard controls, rewards, and gamification settings."
+              href="/settings/scoring"
+              icon={Trophy}
+              ctaLabel="Manage Scoring"
+              badge="Gamification"
+              meta="Points and rewards"
             />
           </SettingsSection>
         </div>

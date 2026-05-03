@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CompanyStatusBadge } from "@/components/crm/company-status-badge";
 import { LeadTemperatureBadge } from "@/components/crm/lead-temperature-badge";
 import { RatingBadge } from "@/components/crm/rating-badge";
+import { Badge } from "@/components/ui/badge";
 import type { Company } from "@/lib/crm/types";
 
 export function CompanyProfileHeader({ company }: { company: Company }) {
@@ -26,6 +27,7 @@ export function CompanyProfileHeader({ company }: { company: Company }) {
           <div className="mt-4 flex flex-wrap gap-2">
             <RatingBadge rating={company.success_rating} />
             <LeadTemperatureBadge temperature={company.lead_temperature} />
+            <Badge variant="warning">Lead Score: {company.lead_score}</Badge>
             <span className="rounded-md border px-2.5 py-0.5 text-xs font-medium">
               Assigned: {company.assigned_profile?.full_name ?? company.assigned_profile?.email ?? "Unassigned"}
             </span>

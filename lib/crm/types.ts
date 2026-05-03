@@ -89,9 +89,11 @@ export type Company = {
   industry_id: string | null;
   category_id: string | null;
   lead_source: string | null;
+  referred_by_user_id: string | null;
   priority: CompanyPriority;
   assigned_user_id: string | null;
   pipeline_stage_id: string | null;
+  lead_score: number;
   status: RecordStatus;
   phone: string | null;
   whatsapp: string | null;
@@ -450,4 +452,6 @@ export type HelpRequestFilters = {
   status?: string;
   assignedTo?: string;
   requestedBy?: string;
+  dateFrom?: string;
+  dateTo?: string;
 };

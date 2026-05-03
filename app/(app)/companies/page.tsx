@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { GuidanceStrip } from "@/components/shared/guidance-strip";
 import { CompanyTable } from "@/components/crm/company-table";
 import { PageHeader } from "@/components/shared/page-header";
+import { CompanyImportModal } from "@/components/crm/companies/company-import-modal";
 import { getCompanies, getCompanyFormOptions } from "@/lib/crm/queries";
 import type { CompanyFilters } from "@/lib/crm/types";
 
@@ -24,12 +25,15 @@ export default async function CompaniesPage({
         title="Companies & Leads"
         description="Track every prospect, buyer, and relationship from one place."
         actions={
-          <Button asChild>
-            <Link href="/companies/new">
-              <Plus />
-              Add Company
-            </Link>
-          </Button>
+          <div className="flex items-center gap-3">
+            <CompanyImportModal />
+            <Button asChild className="rounded-full">
+              <Link href="/companies/new">
+                <Plus />
+                Add Company
+              </Link>
+            </Button>
+          </div>
         }
       />
       <GuidanceStrip dismissible storageKey="crm-tip-companies">

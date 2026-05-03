@@ -1,564 +1,597 @@
 import Link from "next/link";
 import {
+  AlertCircle,
   ArrowRight,
   CalendarClock,
-  CheckCircle2,
+  CalendarDays,
+  ChevronRight,
   CircleDollarSign,
+  CircleHelp,
+  Clock3,
   Flame,
+  FolderKanban,
   Handshake,
   LifeBuoy,
-  LineChart,
   Plus,
-  Target,
   TimerOff,
+  TrendingUp,
   Users,
 } from "lucide-react";
+import { DashboardDealsStageChart, DashboardLeadTargetChart } from "@/components/dashboard/dashboard-visuals";
+import { DashboardDateRangePicker } from "@/components/dashboard/dashboard-date-range-picker";
+import { DashboardKPIs } from "@/components/dashboard/dashboard-kpis";
+import { 
+  ActivityRow, 
+  AlertCard, 
+  AnimatedGridItem, 
+  AnimatedHeader, 
+  CompactEmptyState, 
+  DashboardCard,
+  PipelineFunnel,
+  ProgressMetric,
+  TaskRow,
+} from "@/components/dashboard/dashboard-animations";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { StatCard } from "@/components/shared/stat-card";
-import { UsageProgressBar } from "@/components/subscription/usage-progress-bar";
-import { getCurrentProfile, requireOrganization } from "@/lib/auth/session";
-import {
-  getDashboardMetrics,
-  getDashboardSetupCounts,
-  getPipelineCompanies,
-  getPipelineStagesForBoard,
-  getPipelineSummary,
-} from "@/lib/crm/queries";
+import { getCurrentProfile } from "@/lib/auth/session";
+import { getFollowupReport, getSalesOverviewReport } from "@/lib/crm/report-queries";
 import { getFollowups } from "@/lib/crm/followup-queries";
-import { getOpenHelpRequestsCount, getHelpRequests } from "@/lib/crm/help-request-queries";
+import { getHelpRequests, getOpenHelpRequestsCount } from "@/lib/crm/help-request-queries";
+import { getInteractions, getPipelineCompanies, getPipelineStagesForBoard, getPipelineSummary } from "@/lib/crm/queries";
+import type { Followup, HelpRequest, Interaction, PipelineBoardCompany, PipelineStage } from "@/lib/crm/types";
 import { formatCurrency } from "@/lib/crm/utils";
-import { getCurrentPlan, getOrganizationUsage } from "@/lib/subscription/subscription-queries";
-import type { Followup, HelpRequest, PipelineBoardCompany, PipelineStage } from "@/lib/crm/types";
+import { getCurrentUserWalletSummary } from "@/lib/scoring/queries";
 import { getDisplayName } from "@/lib/utils";
 
-export default async function DashboardPage() {
-  const organization = await requireOrganization();
+type DashboardTaskItem = {
+  id: string;
+  title: string;
+  subtitle: string;
+  badge: string;
+  href: string;
+  tone: "rose" | "amber" | "blue";
+  icon: typeof TimerOff;
+};
+
+type DashboardActivityItem = {
+  id: string;
+  title: string;
+  subtitle: string;
+  badge: string;
+  href: string;
+  tone: "emerald" | "blue" | "amber";
+};
+
+type DashboardAlertItem = {
+  id: string;
+  title: string;
+  count: number;
+  description: string;
+  href: string;
+  tone: "rose" | "amber" | "teal";
+  icon: typeof TimerOff;
+};
+
+const ACTIVITY_TARGETS = {
+  leads: 20,
+  meetings: 10,
+  followups: 30,
+} as const;
+
+const DEFAULT_STAGE_COLORS = ["#16a34a", "#86efac", "#facc15", "#fb923c", "#f87171"];
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string }>;
+}) {
+  const { from, to } = await searchParams;
   const profile = await getCurrentProfile();
+  const displayName = getDisplayName(profile?.full_name, profile?.email, "there");
+
   const [
-    metrics,
-    openHelpRequestsCount,
-    currentPlan,
-    usage,
-    setupCounts,
-    pipelineCompanies,
-    pipelineStages,
     pendingFollowups,
     helpRequests,
+    pipelineCompanies,
+    pipelineStages,
+    interactions,
+    salesOverview,
+    followupReport,
+    safeOpenHelpRequestsCount,
+    safeWalletSummary,
+    yesterdayFollowups,
   ] = await Promise.all([
-    getDashboardMetrics(),
-    getOpenHelpRequestsCount(),
-    getCurrentPlan(),
-    getOrganizationUsage(),
-    getDashboardSetupCounts(),
+    getFollowups({ 
+      status: "pending",
+      dateStart: from,
+      dateEnd: to
+    }),
+    getHelpRequests({
+      dateFrom: from,
+      dateTo: to
+    }),
     getPipelineCompanies(),
     getPipelineStagesForBoard(),
-    getFollowups({ status: "pending" }),
-    getHelpRequests({}),
+    getInteractions({
+      dateFrom: from,
+      dateTo: to
+    }),
+    getSalesOverviewReport({ 
+      dateRange: from && to ? "custom" : "this_month",
+      startDate: from,
+      endDate: to
+    }),
+    getFollowupReport({ 
+      dateRange: from && to ? "custom" : "this_month",
+      startDate: from,
+      endDate: to
+    }),
+    getSafeOpenHelpRequestsCount(),
+    getCurrentUserWalletSummary(),
+    getFollowups({
+      dateStart: new Date(new Date().setHours(0, 0, 0, 0) - 86400000).toISOString(),
+      dateEnd: new Date(new Date().setHours(23, 59, 59, 999) - 86400000).toISOString(),
+    }),
   ]);
 
-  const pipelineSummary = await getPipelineSummary(pipelineCompanies);
-  const displayName = getDisplayName(profile?.full_name, profile?.email, "there");
-  const today = getDateBounds();
+  // Filter pipeline companies by date range if provided
+  const filteredPipelineCompanies = from && to 
+    ? pipelineCompanies.filter(c => {
+        const created = new Date(c.created_at);
+        return created >= new Date(from) && created <= new Date(to);
+      })
+    : pipelineCompanies;
 
-  const todaysFollowups = pendingFollowups
-    .filter((followup) => {
-      const time = new Date(followup.scheduled_at).getTime();
-      return time >= today.start.getTime() && time <= today.end.getTime();
+  const pipelineSummary = await getPipelineSummary(filteredPipelineCompanies);
+  const dateBounds = getDateBounds();
+
+  // If custom dates provided, use them for bounds
+  if (from && to) {
+    dateBounds.start = new Date(from);
+    dateBounds.end = new Date(to);
+    dateBounds.end.setHours(23, 59, 59, 999);
+  }
+
+  // Calculate Trends
+  const thisMonthStart = new Date(dateBounds.now.getFullYear(), dateBounds.now.getMonth(), 1);
+  
+  const currentPipelineValue = pipelineSummary.totalPipelineValue;
+  const lastMonthPipelineValue = pipelineCompanies
+    .filter(c => new Date(c.created_at) < thisMonthStart && !c.pipeline_stages?.is_won && !c.pipeline_stages?.is_lost)
+    .reduce((sum, c) => sum + Number(c.estimated_value || 0), 0);
+  
+  const pipelineValueTrend = calculateTrend(currentPipelineValue, lastMonthPipelineValue);
+
+  const currentActiveDeals = pipelineSummary.totalActiveDeals;
+  const lastMonthActiveDeals = pipelineCompanies
+    .filter(c => new Date(c.created_at) < thisMonthStart && !c.pipeline_stages?.is_won && !c.pipeline_stages?.is_lost)
+    .length;
+  
+  const dealsTrend = calculateTrend(currentActiveDeals, lastMonthActiveDeals);
+
+  const overdueFollowups = pendingFollowups.filter((followup) =>
+    isBeforeDay(followup.scheduled_at, dateBounds.start),
+  );
+  const todaysFollowups = pendingFollowups.filter((followup) =>
+    isWithinDateRange(followup.scheduled_at, dateBounds.start, dateBounds.end),
+  );
+  
+  const followupsTrend = {
+    value: Math.abs(todaysFollowups.length - yesterdayFollowups.length),
+    isPositive: todaysFollowups.length >= yesterdayFollowups.length,
+    label: "from yesterday"
+  };
+
+  const openHelpRequests = helpRequests.filter(
+    (request) => request.status === "open" || request.status === "in_progress",
+  );
+  const openHelpRequestsCount = safeOpenHelpRequestsCount ?? openHelpRequests.length;
+
+  const yesterdayHelpRequests = helpRequests.filter(request => {
+    const createdDate = new Date(request.created_at);
+    const yesterdayStart = new Date(dateBounds.start);
+    yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+    const yesterdayEnd = new Date(dateBounds.end);
+    yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
+    return createdDate >= yesterdayStart && createdDate <= yesterdayEnd;
+  });
+
+  const helpTrend = {
+    value: Math.abs(openHelpRequests.filter(r => isWithinDateRange(r.created_at, dateBounds.start, dateBounds.end)).length - yesterdayHelpRequests.length),
+    isPositive: openHelpRequests.filter(r => isWithinDateRange(r.created_at, dateBounds.start, dateBounds.end)).length >= yesterdayHelpRequests.length,
+    label: "from yesterday"
+  };
+
+  const upcomingMeetings = interactions
+    .filter((interaction) => new Date(interaction.meeting_datetime).getTime() >= dateBounds.now.getTime())
+    .sort((left, right) => {
+      return new Date(left.meeting_datetime).getTime() - new Date(right.meeting_datetime).getTime();
     })
-    .slice(0, 5);
+    .slice(0, 2);
 
-  const overdueFollowups = pendingFollowups
-    .filter((followup) => new Date(followup.scheduled_at).getTime() < today.start.getTime())
-    .slice(0, 5);
+  const tasks = buildDashboardTasks({
+    overdueFollowups,
+    todaysFollowups,
+    openHelpRequests,
+    upcomingMeetings,
+  }).slice(0, 3);
 
-  const openHelpRequests = helpRequests
-    .filter((request) => request.status === "open" || request.status === "in_progress")
-    .slice(0, 5);
+  const todaysAchievement = {
+    leads: pipelineCompanies.filter(c => isWithinDateRange(c.created_at, dateBounds.start, dateBounds.end)).length,
+    meetings: interactions.filter(i => isWithinDateRange(i.meeting_datetime, dateBounds.start, dateBounds.end)).length,
+    followups: followupReport.completedFollowups.filter(f => isWithinDateRange(f.completed_at!, dateBounds.start, dateBounds.end)).length,
+  };
 
-  const showGettingStarted =
-    metrics.totalCompanies <= 1 || setupCounts.meetings === 0 || setupCounts.followups === 0;
+  const DAILY_TARGETS = {
+    leads: 2,
+    meetings: 1,
+    followups: 3,
+  };
 
-  const firstStageId = pipelineStages[0]?.id ?? null;
-  const movedDeals = pipelineCompanies.filter(
-    (company) => company.pipeline_stage_id && firstStageId && company.pipeline_stage_id !== firstStageId,
-  ).length;
+  const totalDailyTarget = DAILY_TARGETS.leads + DAILY_TARGETS.meetings + DAILY_TARGETS.followups;
+  const totalDailyAchievement = todaysAchievement.leads + todaysAchievement.meetings + todaysAchievement.followups;
+  const dailyProgress = Math.min(100, Math.round((totalDailyAchievement / totalDailyTarget) * 100));
 
-  const gettingStartedSteps = [
-    {
-      title: "Add your first lead",
-      description: "Create a company or lead so the CRM has something to track.",
-      href: "/companies/new",
-      completed: setupCounts.companies > 0,
-    },
-    {
-      title: "Add contact person",
-      description: "Attach a decision-maker or primary contact to your lead.",
-      href: "/contacts/new",
-      completed: setupCounts.contacts > 0,
-    },
-    {
-      title: "Log first meeting",
-      description: "Capture your first client call, demo, or meeting note.",
-      href: "/meetings/new",
-      completed: setupCounts.meetings > 0,
-    },
-    {
-      title: "Create follow-up",
-      description: "Set the next action so your pipeline keeps moving.",
-      href: "/followups/new",
-      completed: setupCounts.followups > 0,
-    },
-    {
-      title: "Move deal in pipeline",
-      description: "Advance a lead to the next stage as progress happens.",
-      href: "/pipeline",
-      completed: movedDeals > 0,
-    },
-  ];
+  const selectedFunnelStages = selectFunnelStages(pipelineStages);
+  const funnelStages = selectedFunnelStages.map((stage, index) => ({
+    id: stage.id,
+    name: stage.name,
+    count: pipelineCompanies.filter((company) => company.pipeline_stage_id === stage.id).length,
+    color: stage.color || DEFAULT_STAGE_COLORS[index % DEFAULT_STAGE_COLORS.length],
+    width: Math.max(50, 100 - index * 12),
+  }));
 
-  const stageSnapshot = pipelineStages
-    .map((stage) => ({
-      stage,
-      count: pipelineCompanies.filter((company) => company.pipeline_stage_id === stage.id).length,
-      value: pipelineCompanies
-        .filter((company) => company.pipeline_stage_id === stage.id)
-        .reduce((total, company) => total + Number(company.estimated_value ?? 0), 0),
+  const leadTrend = buildLeadTrend(pipelineCompanies, from && to ? { from, to } : undefined);
+  const dealsByStage = pipelineStages
+    .map((stage, index) => ({
+      name: stage.name,
+      value: pipelineCompanies.filter((company) => company.pipeline_stage_id === stage.id).length,
+      color: stage.color || DEFAULT_STAGE_COLORS[index % DEFAULT_STAGE_COLORS.length],
     }))
-    .filter((item) => item.count > 0)
-    .slice(0, 5);
+    .filter((item) => item.value > 0);
 
-  const kpis = [
+  const recentActivity = buildRecentActivity({
+    companies: pipelineCompanies,
+    interactions,
+    helpRequests,
+  });
+
+  const stuckDealsCount = pipelineCompanies.filter((company) => {
+    const isClosed = company.pipeline_stages?.is_won || company.pipeline_stages?.is_lost;
+    if (isClosed || !company.last_interaction_at) {
+      return false;
+    }
+    const ageMs = dateBounds.now.getTime() - new Date(company.last_interaction_at).getTime();
+    return ageMs > 7 * 24 * 60 * 60 * 1000;
+  }).length;
+
+  const alertCards = [
     {
-      title: "Total Leads",
-      value: String(metrics.totalCompanies),
-      description: "All active companies and leads in your workspace",
-      icon: Users,
-      tone: "teal" as const,
-      href: "/companies",
-    },
-    {
-      title: "Active Deals",
-      value: String(pipelineSummary.totalActiveDeals),
-      description: "Deals still in motion across the pipeline",
-      icon: Target,
-      tone: "blue" as const,
-      href: "/pipeline",
-    },
-    {
-      title: "Today's Follow-ups",
-      value: String(metrics.todaysFollowups),
-      description: "Actions due before the day ends",
-      icon: CalendarClock,
-      tone: "amber" as const,
-      href: "/followups",
-    },
-    {
+      id: "overdue-followups",
       title: "Overdue Follow-ups",
-      value: String(metrics.missedFollowups),
-      description: "Pending actions that need immediate review",
-      icon: TimerOff,
-      tone: "rose" as const,
+      count: overdueFollowups.length,
+      description:
+        overdueFollowups.length > 0
+          ? `${overdueFollowups.length} follow-up${overdueFollowups.length === 1 ? "" : "s"} need immediate attention.`
+          : "No overdue follow-ups are blocking the team right now.",
       href: "/followups",
+      tone: "rose" as const,
+      iconName: "TimerOff",
     },
     {
-      title: "Pipeline Value",
-      value: formatCurrency(metrics.pipelineValue),
-      description: "Estimated open deal value across your CRM",
-      icon: CircleDollarSign,
-      tone: "slate" as const,
+      id: "deals-stuck",
+      title: "Deals Stuck",
+      count: stuckDealsCount,
+      description:
+        stuckDealsCount > 0
+          ? `${stuckDealsCount} active deal${stuckDealsCount === 1 ? "" : "s"} have been quiet for more than 7 days.`
+          : "No active deals look stuck based on recent interaction history.",
       href: "/pipeline",
+      tone: "amber" as const,
+      iconName: "FolderKanban",
     },
     {
+      id: "open-help-requests",
       title: "Open Help Requests",
-      value: String(openHelpRequestsCount),
-      description: "Blocked deals or requests waiting on support",
-      icon: LifeBuoy,
-      tone: "amber" as const,
+      count: openHelpRequestsCount,
+      description:
+        openHelpRequestsCount > 0
+          ? `${openHelpRequestsCount} support request${openHelpRequestsCount === 1 ? "" : "s"} still need follow-through.`
+          : "No open support requests are waiting on the team.",
       href: "/need-help",
+      tone: "teal" as const,
+      iconName: "LifeBuoy",
     },
   ];
 
-  const isCaughtUp =
-    todaysFollowups.length === 0 && overdueFollowups.length === 0 && openHelpRequests.length === 0;
+  const hasCriticalAlerts = alertCards.some((item) => item.count > 0);
 
   return (
     <div className="space-y-6">
-      <section className="rounded-2xl border bg-gradient-to-br from-white via-white to-slate-50">
-        <div className="flex flex-col gap-6 p-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="min-w-0 space-y-3">
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-slate-500">Welcome back</p>
-              <h1 className="text-3xl font-semibold tracking-normal text-slate-900 sm:text-4xl">
-                {displayName}
-              </h1>
+      <AnimatedHeader>
+        <div className="space-y-1">
+          <h1 className="text-[1.9rem] font-semibold tracking-normal text-slate-900 sm:text-[2.15rem]">
+            Welcome back, {displayName} <span aria-hidden="true">{"\u{1F44B}"}</span>
+          </h1>
+          <p className="text-sm text-slate-600">Here&apos;s what&apos;s happening with your sales today.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <DashboardDateRangePicker />
+          <Button asChild className="rounded-full px-4">
+            <Link href="/companies/new">
+              <Plus />
+              Add Lead
+            </Link>
+          </Button>
+          <Button asChild variant="outline" className="rounded-full px-4">
+            <Link href="/meetings/new">Log Meeting</Link>
+          </Button>
+          <Button asChild variant="outline" className="rounded-full px-4">
+            <Link href="/followups/new">Create Follow-up</Link>
+          </Button>
+        </div>
+      </AnimatedHeader>
+
+      <DashboardKPIs 
+        pipelineValue={formatCurrency(pipelineSummary.totalPipelineValue)}
+        pipelineValueTrend={{
+          value: `${pipelineValueTrend.value}%`,
+          isPositive: pipelineValueTrend.isPositive,
+          label: "from last month",
+        }}
+        activeDeals={String(pipelineSummary.totalActiveDeals)}
+        dealsTrend={{
+          value: `${dealsTrend.value}%`,
+          isPositive: dealsTrend.isPositive,
+          label: "from last month",
+        }}
+        todaysFollowupsCount={String(todaysFollowups.length)}
+        followupsTrend={followupsTrend}
+        openHelpRequestsCount={String(openHelpRequestsCount)}
+        helpTrend={helpTrend}
+      />
+
+      <section className="grid gap-5 xl:grid-cols-3 items-start">
+        <DashboardCard
+          title="Today's Tasks"
+          description="The next actions worth tackling first."
+          actionHref="/followups"
+          actionLabel="View all"
+          className="h-full"
+          contentClassName="pt-0 pb-2"
+          delay={0.15}
+        >
+          {tasks.length === 0 ? (
+            <CompactEmptyState
+              title="You're all caught up for today."
+              description="No overdue follow-ups, help requests, or upcoming meetings need attention right now."
+            />
+          ) : (
+            <div className="space-y-2.5">
+              {tasks.map((task) => (
+                <TaskRow key={task.id} task={task} />
+              ))}
             </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-slate-700">{organization.name}</p>
-              <p className="max-w-2xl text-sm text-slate-600">
-                Here&apos;s what needs attention across your CRM today.
-              </p>
+          )}
+        </DashboardCard>
+
+        <DashboardCard
+          title="Today's Achievement"
+          description="Daily sales activity performance."
+          headerRight={
+            <div className="flex flex-col items-end">
+              <span className="text-2xl font-bold text-emerald-600">{dailyProgress}%</span>
+              <span className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
+                Performance
+              </span>
             </div>
+          }
+          className="h-full"
+          delay={0.2}
+        >
+          <div className="space-y-4">
+            <ProgressMetric
+              label="Leads added"
+              value={todaysAchievement.leads}
+              target={DAILY_TARGETS.leads}
+              colorClassName="bg-emerald-500"
+            />
+            <ProgressMetric
+              label="Meetings logged"
+              value={todaysAchievement.meetings}
+              target={DAILY_TARGETS.meetings}
+              colorClassName="bg-sky-500"
+            />
+            <ProgressMetric
+              label="Follow-ups completed"
+              value={todaysAchievement.followups}
+              target={DAILY_TARGETS.followups}
+              colorClassName="bg-amber-500"
+            />
           </div>
-          <div className="flex flex-wrap gap-3">
-            <Button asChild>
-              <Link href="/companies/new">
-                <Plus />
-                Add Lead
+        </DashboardCard>
+
+        <DashboardCard
+          title="Pipeline Overview"
+          description="Track deal progression through stages."
+          headerRight={
+            <Button asChild variant="ghost" size="sm" className="rounded-full">
+              <Link href="/pipeline">
+                View Pipeline
+                <ArrowRight className="ml-1 size-3" />
               </Link>
             </Button>
-            <Button asChild variant="outline">
-              <Link href="/meetings/new">Log Meeting</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/followups/new">Create Follow-up</Link>
-            </Button>
-          </div>
-        </div>
+          }
+          className="h-full"
+          contentClassName="pt-4"
+          delay={0.25}
+        >
+          <PipelineFunnel stages={funnelStages} />
+        </DashboardCard>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {kpis.map((kpi) => (
-          <StatCard key={kpi.title} {...kpi} />
+      <section className="grid gap-5 xl:grid-cols-3 items-start">
+        <DashboardLeadTargetChart leadTrend={leadTrend} />
+        <DashboardDealsStageChart stageDistribution={dealsByStage} />
+
+        <DashboardCard
+          title="Recent Activity"
+          description="Latest leads and deal progression."
+          actionHref="/pipeline"
+          actionLabel="View all"
+          className="h-full"
+          contentClassName="pt-0"
+        >
+          {recentActivity.length === 0 ? (
+            <CompactEmptyState
+              title="No recent activity"
+              description="Your team's latest actions will appear here."
+            />
+          ) : (
+            <div className="space-y-3">
+              {recentActivity.map((item, index) => (
+                <ActivityRow key={item.id} item={item} />
+              ))}
+            </div>
+          )}
+        </DashboardCard>
+      </section>
+
+      <section className="grid gap-5 md:grid-cols-3">
+        {alertCards.map((alert, index) => (
+          <AlertCard key={alert.id} alert={alert} index={index} />
         ))}
       </section>
-
-      <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <Card className="rounded-2xl">
-          <CardHeader>
-            <CardTitle className="text-slate-900">Today&apos;s Focus</CardTitle>
-            <CardDescription className="text-slate-600">
-              Start here to keep momentum on follow-ups, blocked deals, and urgent work.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {isCaughtUp ? (
-              <div className="rounded-2xl border border-dashed bg-slate-50 px-6 py-10 text-center">
-                <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-                  <CheckCircle2 className="size-6" />
-                </div>
-                <h3 className="mt-4 text-lg font-semibold text-slate-900">You’re all caught up for today.</h3>
-                <p className="mx-auto mt-2 max-w-2xl text-sm text-slate-600">
-                  No overdue follow-ups, no scheduled follow-ups left today, and no open help requests need attention right now.
-                </p>
-                <Button asChild className="mt-5">
-                  <Link href="/pipeline">View Pipeline</Link>
-                </Button>
-              </div>
-            ) : (
-              <div className="grid gap-4 lg:grid-cols-3">
-                <FocusListCard
-                  title="Today’s Follow-ups"
-                  description="Scheduled for today"
-                  href="/followups"
-                  emptyLabel="No follow-ups due today."
-                  items={todaysFollowups}
-                  renderItem={(followup) => (
-                    <DashboardLinkRow
-                      key={followup.id}
-                      title={followup.title}
-                      subtitle={`${followup.companies?.name ?? "No company"} • ${formatDateTime(followup.scheduled_at)}`}
-                      href={`/followups/${followup.id}`}
-                    />
-                  )}
-                />
-                <FocusListCard
-                  title="Overdue Follow-ups"
-                  description="Needs immediate review"
-                  href="/followups"
-                  emptyLabel="No overdue follow-ups."
-                  items={overdueFollowups}
-                  renderItem={(followup) => (
-                    <DashboardLinkRow
-                      key={followup.id}
-                      title={followup.title}
-                      subtitle={`${followup.companies?.name ?? "No company"} • ${formatDateTime(followup.scheduled_at)}`}
-                      href={`/followups/${followup.id}`}
-                      tone="danger"
-                    />
-                  )}
-                />
-                <FocusListCard
-                  title="Open Help Requests"
-                  description="Support or escalation needed"
-                  href="/need-help"
-                  emptyLabel="No open help requests."
-                  items={openHelpRequests}
-                  renderItem={(request) => (
-                    <DashboardLinkRow
-                      key={request.id}
-                      title={request.title}
-                      subtitle={`${request.companies?.name ?? "No company"} • ${toSentenceCase(request.status)}`}
-                      href={`/need-help/${request.id}`}
-                    />
-                  )}
-                />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="rounded-2xl">
-          <CardHeader>
-            <CardTitle className="text-slate-900">Pipeline Snapshot</CardTitle>
-            <CardDescription className="text-slate-600">
-              A clean read on current deal value, heat, and stage concentration.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <MiniMetric
-                label="Pipeline value"
-                value={formatCurrency(pipelineSummary.totalPipelineValue)}
-                icon={LineChart}
-              />
-              <MiniMetric
-                label="Active deals"
-                value={String(pipelineSummary.totalActiveDeals)}
-                icon={Handshake}
-              />
-              <MiniMetric
-                label="Hot / Very hot"
-                value={String(pipelineSummary.hotLeads)}
-                icon={Flame}
-              />
-              <MiniMetric
-                label="Won deals"
-                value={String(pipelineSummary.wonDeals)}
-                icon={CheckCircle2}
-              />
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium text-slate-900">Stage Breakdown</h3>
-                <Button asChild variant="ghost" size="sm">
-                  <Link href="/pipeline">
-                    View Pipeline
-                    <ArrowRight />
-                  </Link>
-                </Button>
-              </div>
-
-              {stageSnapshot.length === 0 ? (
-                <div className="rounded-xl border border-dashed px-4 py-5 text-sm text-slate-600">
-                  No active deals are in the pipeline yet.
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {stageSnapshot.map(({ stage, count, value }) => (
-                    <div key={stage.id} className="flex items-center justify-between rounded-xl border px-4 py-3">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="size-2.5 rounded-full" style={{ backgroundColor: stage.color }} />
-                          <p className="truncate text-sm font-medium text-slate-900">{stage.name}</p>
-                        </div>
-                        <p className="mt-1 text-xs text-slate-500">{count} deal{count === 1 ? "" : "s"}</p>
-                      </div>
-                      <p className="text-sm font-semibold text-slate-900">{formatCurrency(value)}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </section>
-
-      <section className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
-        {showGettingStarted ? (
-          <Card className="rounded-2xl">
-            <CardHeader>
-              <CardTitle className="text-slate-900">Getting Started</CardTitle>
-              <CardDescription className="text-slate-600">
-                Follow these steps to turn the CRM into a daily workflow for your team.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {gettingStartedSteps.map((step) => (
-                <div key={step.title} className="flex flex-col gap-3 rounded-xl border px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      {step.completed ? (
-                        <CheckCircle2 className="size-4 text-emerald-600" />
-                      ) : (
-                        <span className="size-4 rounded-full border border-slate-300" />
-                      )}
-                      <p className="text-sm font-medium text-slate-900">{step.title}</p>
-                    </div>
-                    <p className="mt-1 text-sm text-slate-600">{step.description}</p>
-                  </div>
-                  <Button asChild variant={step.completed ? "ghost" : "outline"} size="sm">
-                    <Link href={step.href}>{step.completed ? "Review" : "Start"}</Link>
-                  </Button>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="rounded-2xl">
-            <CardHeader>
-              <CardTitle className="text-slate-900">Momentum Check</CardTitle>
-              <CardDescription className="text-slate-600">
-                Your CRM has enough activity to skip setup mode. Keep the pipeline moving and review the next actions.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-3">
-              <MiniMetric label="Contacts" value={String(setupCounts.contacts)} icon={Users} />
-              <MiniMetric label="Meetings logged" value={String(setupCounts.meetings)} icon={CalendarClock} />
-              <MiniMetric label="Follow-ups created" value={String(setupCounts.followups)} icon={Handshake} />
-            </CardContent>
-          </Card>
-        )}
-
-        <Card className="rounded-2xl">
-          <CardHeader>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <CardTitle className="text-slate-900">Plan Usage</CardTitle>
-                <CardDescription className="text-slate-600">
-                  {currentPlan ? `${currentPlan.name} plan snapshot` : "Subscription details are not available right now."}
-                </CardDescription>
-              </div>
-              <Button asChild variant="ghost" size="sm">
-                <Link href="/subscription">Manage subscription</Link>
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <CompactUsageRow
-              label="Users"
-              used={usage.reservedSeats}
-              limit={currentPlan?.max_users ?? null}
-            />
-            <CompactUsageRow
-              label="Companies"
-              used={usage.companies}
-              limit={currentPlan?.max_companies ?? null}
-            />
-            <CompactUsageRow
-              label="Storage"
-              used={Number(usage.storageUsedMb.toFixed(2))}
-              limit={currentPlan?.storage_limit_mb ?? null}
-              unit="MB"
-            />
-          </CardContent>
-        </Card>
-      </section>
     </div>
   );
 }
 
-function FocusListCard<T>({
-  title,
-  description,
-  href,
-  emptyLabel,
-  items,
-  renderItem,
-}: {
-  title: string;
-  description: string;
-  href: string;
-  emptyLabel: string;
-  items: T[];
-  renderItem: (item: T) => React.ReactNode;
-}) {
-  return (
-    <div className="rounded-xl border bg-slate-50/50 p-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h3 className="text-sm font-medium text-slate-900">{title}</h3>
-          <p className="mt-1 text-xs text-slate-500">{description}</p>
-        </div>
-        <Button asChild variant="ghost" size="sm">
-          <Link href={href}>View all</Link>
-        </Button>
-      </div>
-      <div className="mt-4 space-y-2">
-        {items.length === 0 ? (
-          <div className="rounded-lg border border-dashed px-3 py-4 text-sm text-slate-500">{emptyLabel}</div>
-        ) : (
-          items.map(renderItem)
-        )}
-      </div>
-    </div>
-  );
+async function getSafeOpenHelpRequestsCount() {
+  try {
+    return await getOpenHelpRequestsCount();
+  } catch (error) {
+    return null;
+  }
 }
 
-function DashboardLinkRow({
-  title,
-  subtitle,
-  href,
-  tone = "default",
+function buildDashboardTasks({
+  overdueFollowups,
+  todaysFollowups,
+  openHelpRequests,
+  upcomingMeetings,
 }: {
-  title: string;
-  subtitle: string;
-  href: string;
-  tone?: "default" | "danger";
-}) {
-  return (
-    <Link
-      href={href}
-      className="block rounded-lg border bg-white px-3 py-3 transition-colors hover:border-primary/40 hover:bg-primary/5"
-    >
-      <p className={`text-sm font-medium ${tone === "danger" ? "text-rose-700" : "text-slate-900"}`}>{title}</p>
-      <p className="mt-1 text-xs text-slate-500">{subtitle}</p>
-    </Link>
-  );
+  overdueFollowups: Followup[];
+  todaysFollowups: Followup[];
+  openHelpRequests: HelpRequest[];
+  upcomingMeetings: Interaction[];
+}): any[] {
+  return [
+    ...overdueFollowups.map((followup) => ({
+      id: `overdue-${followup.id}`,
+      title: followup.title,
+      subtitle: `${followup.companies?.name ?? "No company"} | ${formatDateTime(followup.scheduled_at)}`,
+      badge: "Overdue",
+      href: `/followups/${followup.id}`,
+      tone: "rose" as const,
+      iconName: "TimerOff",
+    })),
+    ...todaysFollowups.map((followup) => ({
+      id: `today-${followup.id}`,
+      title: followup.title,
+      subtitle: `${followup.companies?.name ?? "No company"} | ${formatDateTime(followup.scheduled_at)}`,
+      badge: "Today",
+      href: `/followups/${followup.id}`,
+      tone: "amber" as const,
+      iconName: "Clock3",
+    })),
+    ...openHelpRequests.map((request) => ({
+      id: `help-${request.id}`,
+      title: request.title,
+      subtitle: `${request.companies?.name ?? "No company"} | ${toSentenceCase(request.priority)}`,
+      badge: toSentenceCase(request.status),
+      href: `/need-help/${request.id}`,
+      tone: "blue" as const,
+      iconName: "CircleHelp",
+    })),
+    ...upcomingMeetings.map((meeting) => ({
+      id: `meeting-${meeting.id}`,
+      title: meeting.companies?.name ?? meeting.interaction_type,
+      subtitle: `${meeting.interaction_type} | ${formatDateTime(meeting.meeting_datetime)}`,
+      badge: "Meeting",
+      href: `/meetings/${meeting.id}`,
+      tone: "blue" as const,
+      iconName: "CalendarClock",
+    })),
+  ];
 }
 
-function MiniMetric({
-  label,
-  value,
-  icon: Icon,
-}: {
-  label: string;
-  value: string;
-  icon: typeof Users;
-}) {
-  return (
-    <div className="rounded-xl border px-4 py-4">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-slate-600">{label}</p>
-        <div className="flex size-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
-          <Icon className="size-4" />
-        </div>
-      </div>
-      <p className="mt-3 text-2xl font-semibold text-slate-900">{value}</p>
-    </div>
-  );
+function buildLeadTrend(companies: PipelineBoardCompany[], range?: { from: string; to: string }) {
+  const start = range ? new Date(range.from) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  const end = range ? new Date(range.to) : new Date();
+  
+  const counts = new Map<string, { target: number; achievement: number }>();
+  const current = new Date(start);
+  
+  // Daily target based on ACTIVITY_TARGETS.leads (20 per month)
+  const dailyTarget = Number((20 / 30).toFixed(2));
+
+  while (current <= end) {
+    counts.set(current.toISOString().slice(0, 10), { target: dailyTarget, achievement: 0 });
+    current.setDate(current.getDate() + 1);
+  }
+
+  companies.forEach((company) => {
+    const createdAt = new Date(company.created_at);
+    if (createdAt >= start && createdAt <= end) {
+      const key = createdAt.toISOString().slice(0, 10);
+      if (counts.has(key)) {
+        const existing = counts.get(key)!;
+        counts.set(key, { ...existing, achievement: existing.achievement + 1 });
+      }
+    }
+  });
+
+  return Array.from(counts.entries()).map(([date, data]) => ({
+    date,
+    label: new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+    target: data.target,
+    achievement: data.achievement,
+  }));
 }
 
-function CompactUsageRow({
-  label,
-  used,
-  limit,
-  unit = "",
+function buildRecentActivity({
+  companies,
+  interactions,
+  helpRequests,
 }: {
-  label: string;
-  used: number;
-  limit: number | null;
-  unit?: string;
-}) {
-  const suffix = unit ? ` ${unit}` : "";
-  return (
-    <div className="space-y-2 rounded-xl border px-4 py-4">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-medium text-slate-900">{label}</p>
-        <p className="text-sm text-slate-500">
-          {limit === null ? `Unlimited${suffix}` : `${limit.toLocaleString()}${suffix}`}
-        </p>
-      </div>
-      <div className="flex items-end justify-between gap-3">
-        <p className="text-2xl font-semibold text-slate-900">
-          {unit === "MB" ? used.toFixed(2) : used.toLocaleString()}
-          <span className="ml-1 text-sm font-normal text-slate-500">{suffix}</span>
-        </p>
-      </div>
-      <UsageProgressBar value={used} max={limit} />
-    </div>
-  );
+  companies: PipelineBoardCompany[];
+  interactions: Interaction[];
+  helpRequests: HelpRequest[];
+}): DashboardActivityItem[] {
+  const companyItems = [...companies]
+    .sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime())
+    .slice(0, 3)
+    .map((company, index) => ({
+      id: `company-${company.id}`,
+      title: `#${1023 - index} - ${company.name}`,
+      subtitle: company.estimated_value ? `৳ ${company.estimated_value.toLocaleString()}` : "No value",
+      badge: company.pipeline_stages?.name || "Lead",
+      href: `/companies/${company.id}`,
+      tone: "emerald" as const,
+      createdAt: new Date(company.created_at).getTime(),
+    }));
+
+  return companyItems;
+}
+
+function calculateTrend(current: number, previous: number) {
+  if (previous === 0) return { value: current > 0 ? 100 : 0, isPositive: current > 0 };
+  const diff = current - previous;
+  const percentage = Math.round((diff / previous) * 100);
+  return {
+    value: Math.abs(percentage),
+    isPositive: diff >= 0,
+  };
 }
 
 function getDateBounds() {
@@ -566,7 +599,70 @@ function getDateBounds() {
   start.setHours(0, 0, 0, 0);
   const end = new Date(start);
   end.setHours(23, 59, 59, 999);
-  return { start, end };
+  return { start, end, now: new Date() };
+}
+
+function getDaysLeftInMonth() {
+  const now = new Date();
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  return Math.max(0, lastDay - now.getDate());
+}
+
+function getFunnelGradient(color: string, index: number) {
+  const gradients = [
+    "linear-gradient(135deg, #0f8f73 0%, #16997d 45%, #0f7f69 100%)",
+    "linear-gradient(135deg, #86df91 0%, #67cf77 45%, #4bb55f 100%)",
+    "linear-gradient(135deg, #ffe37b 0%, #ffd85a 46%, #ffcb38 100%)",
+    "linear-gradient(135deg, #ffc254 0%, #ffaf2d 48%, #ff9808 100%)",
+    "linear-gradient(135deg, #ff6356 0%, #ff4739 46%, #ef2f26 100%)",
+  ];
+
+  return gradients[index] ?? `linear-gradient(135deg, ${color} 0%, ${color} 100%)`;
+}
+
+function selectFunnelStages(stages: PipelineStage[]) {
+  const orderedStages = [...stages].sort((left, right) => left.position - right.position);
+  const wonStage = orderedStages.find((stage) => stage.is_won);
+  const candidates = [
+    orderedStages.find((stage) => matchesStage(stage.name, ["new lead", "new", "lead"])),
+    orderedStages.find((stage) => matchesStage(stage.name, ["contacted", "contact"])),
+    orderedStages.find((stage) => matchesStage(stage.name, ["proposal", "requirement", "meeting done", "meeting scheduled"])),
+    orderedStages.find((stage) => matchesStage(stage.name, ["negotiation"])),
+    wonStage,
+  ].filter(Boolean) as PipelineStage[];
+
+  const uniqueCandidates = candidates.filter(
+    (stage, index, array) => array.findIndex((item) => item.id === stage.id) === index,
+  );
+
+  if (uniqueCandidates.length >= Math.min(5, orderedStages.length)) {
+    return uniqueCandidates.slice(0, 5);
+  }
+
+  for (const stage of orderedStages) {
+    if (!uniqueCandidates.some((candidate) => candidate.id === stage.id)) {
+      uniqueCandidates.push(stage);
+    }
+    if (uniqueCandidates.length === 5) {
+      break;
+    }
+  }
+
+  return uniqueCandidates.slice(0, 5);
+}
+
+function matchesStage(name: string, variants: string[]) {
+  const normalized = name.toLowerCase();
+  return variants.some((variant) => normalized.includes(variant));
+}
+
+function isWithinDateRange(value: string, start: Date, end: Date) {
+  const time = new Date(value).getTime();
+  return time >= start.getTime() && time <= end.getTime();
+}
+
+function isBeforeDay(value: string, dayStart: Date) {
+  return new Date(value).getTime() < dayStart.getTime();
 }
 
 function formatDateTime(value: string) {

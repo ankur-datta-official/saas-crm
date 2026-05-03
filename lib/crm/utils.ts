@@ -8,14 +8,14 @@ export function slugify(value: string) {
 
 export function formatCurrency(value: number | null | undefined) {
   if (value == null) {
-    return "$0";
+    return "\u09F3 0";
   }
 
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
+  const formatted = new Intl.NumberFormat("en-IN", {
     maximumFractionDigits: 0,
   }).format(value);
+
+  return `\u09F3 ${formatted}`;
 }
 
 export function compactObject<T extends Record<string, unknown>>(value: T) {

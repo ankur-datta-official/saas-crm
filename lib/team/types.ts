@@ -148,4 +148,13 @@ export const PERMISSION_GROUPS = {
     label: "Subscription",
     permissions: ["subscription.view", "subscription.manage"],
   },
+  scoring: {
+    label: "Scoring",
+    permissions: [
+      "scoring.view",
+      "scoring.manage",
+      "rewards.manage",
+      "leaderboard.view",
+    ],
+  },
 } as const;
